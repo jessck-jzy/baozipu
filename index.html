@@ -18,7 +18,7 @@ html,body{overscroll-behavior:none;-webkit-overflow-scrolling:touch}
 .chip b{color:#ffd42a;font-weight:800}
 .chip button{background:none;border:0;color:#fff;font:inherit;font-weight:800;cursor:pointer;
   border-bottom:2px solid #ffd42a;padding:0 1px;touch-action:manipulation}
-#diag,.diag{color:#5f5f5f;font-size:10.5px;letter-spacing:.02em}
+#diag,.diag,.netsync{color:#5f5f5f;font-size:10.5px;letter-spacing:.02em}
 canvas,img.px{image-rendering:pixelated;image-rendering:crisp-edges}
 
 /* ---------- 像素插画 ---------- */
@@ -245,7 +245,7 @@ p.story{font-size:15px;line-height:1.8;color:#fff;margin:0 0 4px;white-space:pre
       <span class="tag">HALL OF FAME · 本城百商</span>
       <h1 class="title">名册</h1>
       <div class="story" id="hof-sub"></div>
-      <div class="hofnote">按净资产排名，只记在这台机器上。最早留名的十位算<b>元从</b>——他们的名字会出现在后来人的牌局里，做你的房东、同行或投资人。先占住的位置，别人要用更高的价钱买回去。</div>
+      <div class="hofnote" id="hof-note">按净资产排名，只记在这台机器上。最早留名的十位算<b>元从</b>——他们的名字会出现在后来人的牌局里，做你的房东、同行或投资人。先占住的位置，别人要用更高的价钱买回去。</div>
       <div id="hof-list"></div>
     </div>
     <button class="btn ghost" id="b-hback">返回</button>
@@ -921,6 +921,11 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
 
 (function(){
   const KEY="bzp.save.v1",HKEY="bzp.hof.v1",RKEY="bzp.run.v1",DKEY="bzp.diag.v1";
+  /* ---------- 全网榜单开关：填好 api 和 key 就生效，留空则只用本机名册 ----------
+     后端用 Supabase（免费）：建一张表 bzp_hof(nm,net,e,f,d,ts)，
+     api 填 https://<项目>.supabase.co/rest/v1 ，key 填 anon public key（可公开）。 */
+  const NET={api:"",key:"",table:"bzp_hof",timeout:7000};
+  const netst={on:!!(NET.api&&NET.key),last:0,ok:null,err:"",pend:null};
   const $=s=>document.querySelector(s);
   const store={
     load(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}},
@@ -960,6 +965,57 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
     return "本机已加载 "+diag.n+" 次 · 距上次 "+ago+" · 原因："+(diag.last||"—");
   }
   let hof=store.loadHof();
+  /* ---------- 远端名册：拉全网 → 与本机合并；只写自己这一条 ---------- */
+  function netHead(){return {"apikey":NET.key,"Authorization":"Bearer "+NET.key,
+    "Content-Type":"application/json"}}
+  function netFetch(path,opt){
+    const ctrl=new AbortController(),t=setTimeout(()=>ctrl.abort(),NET.timeout);
+    return fetch(NET.api.replace(/\/+$/,"")+"/"+path,Object.assign({},opt,{signal:ctrl.signal}))
+      .then(r=>{clearTimeout(t);if(!r.ok)throw new Error("HTTP "+r.status);return r},
+        e=>{clearTimeout(t);throw e});
+  }
+  function netNum(v){v=Math.round(+v||0);return v>0?v:0}
+  function mergeHof(a,b){
+    const m={};
+    [].concat(a||[],b||[]).forEach(x=>{
+      if(!x||!x.nm)return;
+      const p=m[x.nm];
+      if(!p||x.net>p.net||(x.net===p.net&&x.ts<p.ts))m[x.nm]=x;
+    });
+    const out=Object.keys(m).map(k=>m[k])
+      .sort((x,y)=>(y.net-x.net)||(x.ts-y.ts)).slice(0,100);
+    out.slice().sort((x,y)=>(x.ts-y.ts)).forEach((x,i)=>{x.pio=i<10});
+    return out;
+  }
+  function netPull(){
+    if(!netst.on)return Promise.resolve(null);
+    return netFetch(NET.table+"?select=nm,net,e,f,d,ts&order=net.desc&limit=200",{headers:netHead()})
+      .then(r=>r.json())
+      .then(rows=>{
+        if(!Array.isArray(rows))throw new Error("返回格式异常");
+        hof=mergeHof(hof,rows.map(x=>({nm:String(x.nm).slice(0,8),net:netNum(x.net),
+          e:x.e||null,f:x.f||"",d:netNum(x.d),ts:netNum(x.ts)})));
+        store.saveHof(hof);netst.last=Date.now();netst.ok=true;netst.err="";
+        return hof;
+      })
+      .catch(e=>{netst.ok=false;netst.err=String((e&&e.message)||e).slice(0,36);return null});
+  }
+  function netPush(row,cb){
+    if(!netst.on){if(cb)cb(false);return}
+    netFetch(NET.table,{method:"POST",
+      headers:Object.assign({"Prefer":"return=minimal"},netHead()),
+      body:JSON.stringify({nm:row.nm,net:row.net,e:row.e,f:row.f,d:row.d,ts:row.ts})})
+      .then(()=>{netst.ok=true;netst.err="";if(cb)cb(true)},
+        e=>{netst.ok=false;netst.err=String((e&&e.message)||e).slice(0,36);
+            netst.pend={row:row,cb:cb};if(cb)cb(false)});
+  }
+  function netStamp(){
+    if(!netst.on)return "";
+    if(netst.ok===false)return "全网榜没连上（"+(netst.err||"网络")+"），下面显示的是本机记录";
+    if(!netst.last)return "正在同步全网榜…";
+    const d=new Date(netst.last);
+    return "全网榜 · "+("0"+d.getHours()).slice(-2)+":"+("0"+d.getMinutes()).slice(-2)+" 更新";
+  }
   let S=null,lastE=null,cur=null;
 
   const wan=n=>{
@@ -1024,10 +1080,13 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
     $("#s-got").textContent=Object.keys(meta.got).length;
     $("#s-all").textContent=ALL;
     $("#s-run").textContent=meta.runs;
+    $("#b-hof").textContent=netst.on?"全网百商 · 名册":"本城百商 · 名册";
     $("#s-leader").innerHTML=hof.length
-      ?"本城榜首：<b>"+esc(hof[0].nm)+"</b> · "+wan(hof[0].net)+" 元"+
-       (hof.length>1?" · 名册已收录 "+hof.length+" 个名字":" · 名册上目前只有他一个")
-      :"名册还空着。第一个把净资产做到 10 万以上的人，会成为后来所有牌局里的「榜一」。";
+      ?(netst.on?"全网榜首：<b>":"本城榜首：<b>")+esc(hof[0].nm)+"</b> · "+wan(hof[0].net)+" 元"+
+       (hof.length>1?" · 名册已收录 "+hof.length+" 个名字":" · 名册上目前只有他一个")+
+       (netst.on?"<br><span class='netsync'>"+netStamp()+"</span>":"")
+      :"名册还空着。第一个把净资产做到 10 万以上的人，会成为后来所有牌局里的「榜一」。"+
+       (netst.on?"<br><span class='netsync'>"+netStamp()+"</span>":"");
     const r=store.loadRun();
     const rb=$("#b-resume"),sb=$("#b-start");
     if(r){
@@ -1051,6 +1110,11 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
   /* 浏览器重载 / 标签回收后，直接回到那一屏，不用手点 */
   function boot(){
     const gap=logLoad();
+    if(netst.on)netPull().then(()=>{
+      if(!$("#v-home").classList.contains("hidden"))home();
+      if(!$("#v-hof").classList.contains("hidden"))hofView();
+      if(netst.pend){const q=netst.pend;netst.pend=null;netPush(q.row,q.cb);}
+    });
     const r=store.loadRun();
     const fresh=r&&r.ts&&(Date.now()-r.ts)<12*3600*1000;
     if(fresh){
@@ -1491,6 +1555,15 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
     else if(hof[0]&&hof[0].nm!==nm)t+="排在你前面的是「"+hof[0].nm+"」，"+wan(hof[0].net)+" 元。";
     ms.textContent=t;
     home_count();
+    if(netst.on){
+      const mine=hof[r];
+      ms.textContent=t+"正在同步到全网榜…";
+      netPush(mine,ok=>{
+        ms.textContent=t+(ok?"已同步到全网榜——你的名字现在会出现在别人那一桌上。"
+                            :"全网榜没连上（"+netst.err+"），本机这条还在，下次进首页自动重试。");
+        if(!ok)netst.pend={row:mine,cb:null};
+      });
+    }
   }
   function home_count(){
     $("#e-count").textContent="结局 "+Object.keys(meta.got).length+" / "+ALL+
@@ -1498,9 +1571,13 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
   }
 
   function hofView(){
-    $("#hof-sub").textContent=hof.length
+    const paint=()=>{
+    $("#hof-sub").textContent=(hof.length
       ?"共 "+hof.length+" 个名字。榜首 "+hof[0].nm+"，净资产 "+wan(hof[0].net)+" 元。"
-      :"一个名字都还没有。";
+      :"一个名字都还没有。")+(netst.on?" "+netStamp():"");
+    $("#hof-note").innerHTML=(netst.on
+      ?"按净资产排名，<b>全网玩家共用这一张榜</b>。留名的人会写进别人的牌局，做他们的房东、同行或投资人。最早留名的十位算<b>元从</b>，先占住的位置，别人要用更高的价钱买回去。"
+      :"按净资产排名，只记在这台机器上。最早留名的十位算<b>元从</b>——他们的名字会出现在后来人的牌局里，做你的房东、同行或投资人。先占住的位置，别人要用更高的价钱买回去。");
     $("#hof-list").innerHTML=hof.length?hof.map((x,i)=>{
       const e=DB.endings[x.e];
       return '<div class="hrow'+(i===0?" top1 p1":i<3?" top3":"")+'">'+
@@ -1510,7 +1587,10 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
         (x.pio?'<span class="pio">元从</span>':'')+
         '<span class="hv">'+wan(x.net)+'</span></div>';
     }).join(""):'<div class="hempty">还没人留名。<br>第一个把净资产做到 10 万以上的人，之后会一直在别人的牌局里当 NPC。</div>';
-    show("hof");window.scrollTo(0,0);
+    show("hof");window.scrollTo(0,0);};
+    if(netst.on&&(!netst.last||Date.now()-netst.last>60000)){
+      paint();netPull().then(x=>{if(x)paint()});
+    }else paint();
   }
 
   function codex(){
@@ -1552,7 +1632,9 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
   $("#b-home").onclick=home;
   $("#b-again").onclick=startNew;
   $("#b-reset").onclick=()=>{
-    if(!confirm("清空所有已解锁结局、名册和正在经营的那一局？"))return;
+    if(!confirm(netst.on
+      ?"清空本机已解锁结局、本机名册和正在经营的那一局？全网榜上的名字属于所有玩家，不会被清掉。"
+      :"清空所有已解锁结局、名册和正在经营的那一局？"))return;
     meta={got:{},runs:0,best:0};store.save(meta);
     hof=[];store.saveHof(hof);
     store.clearRun();S=null;cur=null;home();
