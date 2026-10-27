@@ -924,7 +924,9 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
   /* ---------- 全网榜单开关：填好 api 和 key 就生效，留空则只用本机名册 ----------
      后端用 Supabase（免费）：建一张表 bzp_hof(nm,net,e,f,d,ts)，
      api 填 https://<项目>.supabase.co/rest/v1 ，key 填 anon public key（可公开）。 */
-  const NET={api:"",key:"",table:"bzp_hof",timeout:7000};
+  const NET={api:"https://ovugayjhtskipghifzup.supabase.co/rest/v1",
+             key:"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im92dWdheWpodHNraXBnaGlmenVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTMxMDI1ODMsImV4cCI6MjEwODY3ODU4M30.136bLVMvk3A-u4APpIuWwBoFLagSghlICi2fQrW7mP0",
+             table:"bzp_hof",timeout:7000};
   const netst={on:!!(NET.api&&NET.key),last:0,ok:null,err:"",pend:null};
   const $=s=>document.querySelector(s);
   const store={
@@ -1085,8 +1087,9 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
       ?(netst.on?"全网榜首：<b>":"本城榜首：<b>")+esc(hof[0].nm)+"</b> · "+wan(hof[0].net)+" 元"+
        (hof.length>1?" · 名册已收录 "+hof.length+" 个名字":" · 名册上目前只有他一个")+
        (netst.on?"<br><span class='netsync'>"+netStamp()+"</span>":"")
-      :"名册还空着。第一个把净资产做到 10 万以上的人，会成为后来所有牌局里的「榜一」。"+
-       (netst.on?"<br><span class='netsync'>"+netStamp()+"</span>":"");
+      :(netst.ok===null&&netst.on?"全网名册连接中，稍候…<br><span class='netsync'>"+netStamp()+"</span>"
+        :"名册还空着。第一个把净资产做到 10 万以上的人，会成为后来所有牌局里的「榜一」。"+
+         (netst.on?"<br><span class='netsync'>"+netStamp()+"</span>":""));
     const r=store.loadRun();
     const rb=$("#b-resume"),sb=$("#b-start");
     if(r){
