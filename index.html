@@ -1,0 +1,1564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1">
+<meta name="theme-color" content="#000000">
+<title>包子铺：人生模拟</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;background:#000;color:#fff;font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif}
+html,body{overscroll-behavior:none;-webkit-overflow-scrolling:touch}
+#app{max-width:520px;margin:0 auto;min-height:100dvh;display:flex;flex-direction:column;
+  padding:calc(12px + env(safe-area-inset-top)) 14px calc(20px + env(safe-area-inset-bottom));background:#000}
+.hidden{display:none!important}
+.chip{font-size:11.5px;color:#8f8f8f;border:2px solid #3a3a3a;padding:6px 9px;margin:0 0 10px;
+  display:flex;justify-content:space-between;align-items:center;gap:8px}
+.chip b{color:#ffd42a;font-weight:800}
+.chip button{background:none;border:0;color:#fff;font:inherit;font-weight:800;cursor:pointer;
+  border-bottom:2px solid #ffd42a;padding:0 1px;touch-action:manipulation}
+#diag,.diag{color:#5f5f5f;font-size:10.5px;letter-spacing:.02em}
+canvas,img.px{image-rendering:pixelated;image-rendering:crisp-edges}
+
+/* ---------- 像素插画 ---------- */
+.ill{margin:2px 0 12px;text-align:center}
+.ill canvas{display:block;width:100%;max-width:340px;height:auto;margin:0 auto;
+  border:0;image-rendering:pixelated;image-rendering:crisp-edges}
+.ill .cap{font-size:11px;color:#8f8f8f;letter-spacing:.16em;margin-top:6px}
+
+/* ---------- 顶部状态条 ---------- */
+.hud{display:flex;gap:8px;align-items:stretch;margin-bottom:10px}
+.hud .cell{flex:1;background:#000;border:2px solid #fff;padding:8px 10px;min-width:0}
+.hud .k{font-size:11px;letter-spacing:.06em;color:#9a9a9a;display:flex;justify-content:space-between;gap:4px}
+.hud .v{font-size:clamp(13px,4.2vw,15px);font-weight:700;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  font-variant-numeric:tabular-nums;color:#fff}
+.bar{height:6px;border:1px solid #4a4a4a;background:#111;margin-top:6px;overflow:hidden}
+.bar i{display:block;height:100%;transition:width .5s cubic-bezier(.2,.8,.2,1)}
+.bar.cash i{background:#ffd42a}
+.bar.rep i{background:#ff5b4a}
+.bar.day i{background:#9be2e4}
+.delta{position:fixed;z-index:9;font-size:13px;font-weight:800;pointer-events:none;animation:pop 1.1s ease-out forwards}
+@keyframes pop{0%{opacity:0;transform:translateY(4px)}25%{opacity:1}100%{opacity:0;transform:translateY(-22px)}}
+.up{color:#7fe08a}.down{color:#ff6b5b}
+
+/* ---------- 卡片 ---------- */
+.card{background:#000;border:2px solid #fff;padding:16px 16px 14px;position:relative;animation:rise .35s ease-out}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.tag{display:inline-block;font-size:11px;color:#000;background:#ffd42a;
+  border:0;padding:3px 9px;margin-bottom:10px;letter-spacing:.06em;font-weight:700}
+h1.title{font-size:21px;line-height:1.35;margin:0 0 8px;letter-spacing:.01em;color:#fff}
+p.story{font-size:15px;line-height:1.8;color:#fff;margin:0 0 4px;white-space:pre-line}
+.opt{display:block;width:100%;text-align:left;margin-top:10px;padding:12px 13px;font-size:15.5px;line-height:1.5;
+  font-family:inherit;color:#fff;background:#000;border:2px solid #fff;cursor:pointer;transition:background .15s,color .15s}
+.opt:active{background:#ffd42a;color:#000;border-color:#ffd42a}
+.opt:active b{background:#000;color:#ffd42a}
+.opt b{display:inline-block;width:20px;height:20px;line-height:20px;text-align:center;font-size:12px;
+  background:#fff;color:#000;margin-right:8px;vertical-align:-4px;font-weight:800}
+.opt small{display:block;color:#9a9a9a;font-size:12px;margin-top:3px;padding-left:28px}
+.opt:active small{color:#3a2f00}
+.btn{touch-action:manipulation;display:block;width:100%;margin-top:12px;padding:14px;font-size:16px;font-weight:800;font-family:inherit;
+  color:#000;background:#ffd42a;border:0;border-radius:999px;cursor:pointer;letter-spacing:.04em;
+  box-shadow:0 4px 0 #8a7200}
+.btn:active{transform:translateY(3px);box-shadow:0 1px 0 #8a7200}
+.btn.ghost{background:#000;color:#fff;border:2px solid #fff;box-shadow:none;font-weight:600;border-radius:999px}
+.btn.ghost:active{background:#fff;color:#000;transform:translateY(2px);box-shadow:none}
+.btn.red{background:#ff5b4a;color:#000;box-shadow:0 4px 0 #7d2018}
+
+/* ---------- 结算提示 ---------- */
+.lesson{margin-top:12px;padding:11px 12px;font-size:13.5px;line-height:1.6;
+  background:#000;border:2px solid #7fe08a;color:#d8ffe0}
+.lesson b{color:#7fe08a;font-size:11px;display:block;letter-spacing:.14em;margin-bottom:3px}
+.warn{border-color:#ff5b4a;color:#ffd9d4}
+.warn b{color:#ff8b7d}
+
+/* ---------- 首页 ---------- */
+.hero{text-align:center;padding:18px 6px 6px}
+.hero canvas{width:200px;max-width:64vw;height:auto;display:block;margin:0 auto 10px;
+  image-rendering:pixelated;image-rendering:crisp-edges}
+.hero h1{font-size:24px;margin:10px 0 0;letter-spacing:.04em;color:#fff}
+.hero .sub{color:#a8a8a8;font-size:13.5px;margin-top:10px;line-height:1.75}
+.stats{display:flex;gap:8px;margin-top:16px}
+.stats div{flex:1;text-align:center;background:#000;border:2px solid #fff;padding:10px 6px}
+.stats span{display:block;font-size:19px;font-weight:800;color:#ffd42a;font-variant-numeric:tabular-nums}
+.stats em{display:block;font-style:normal;font-size:11px;color:#9a9a9a;margin-top:2px}
+
+/* ---------- 结局 ---------- */
+.endName{font-size:20px;line-height:1.35;margin:8px 0 10px;color:#fff}
+
+/* ---------- 像素牌 ---------- */
+.tarot-wrap{display:flex;flex-direction:column;align-items:center;margin:2px 0 14px;perspective:1400px}
+.tarot{position:relative;width:min(70vw,244px);aspect-ratio:3/4;cursor:pointer;
+  transform-style:preserve-3d;transition:transform .95s cubic-bezier(.25,.7,.2,1)}
+.tarot.open{transform:rotateY(180deg)}
+.tf{position:absolute;inset:0;backface-visibility:hidden;-webkit-backface-visibility:hidden;
+  overflow:hidden;background:#000}
+.tf-front{transform:rotateY(180deg)}
+.tf canvas,canvas.tf{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+#v-end .card{animation:ebody .85s cubic-bezier(.2,.7,.2,1) .66s both}
+#v-end .row,#v-end #b-home,#v-end .foot{animation:ebody .7s ease-out .95s both}
+@keyframes ebody{0%{opacity:0;transform:translateY(16px)}100%{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){
+  #v-end .card,#v-end .row,#v-end #b-home,#v-end .foot{animation:none}
+  .tarot{transition:none}
+}
+.hint{text-align:center;font-size:11.5px;color:#777;margin-top:10px;letter-spacing:.05em;transition:color .3s}
+.hint.on{color:#ffd42a}
+.wall{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:12px}
+.mini{aspect-ratio:3/2;border:2px solid #3a3a3a;position:relative;overflow:hidden;background:#000}
+.mini canvas{position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated;image-rendering:crisp-edges}
+.mini .mn{position:absolute;left:0;right:0;bottom:0;font-size:7.5px;line-height:1.2;color:#000;
+  background:rgba(255,255,255,.86);z-index:2;word-break:break-all;padding:2px 3px}
+.mini.got{border-color:#fff}
+.mini.lock{border:2px dashed #3a3a3a}
+.mini.lock .mn{color:#7d7d7d;background:rgba(255,255,255,.06)}
+@media (max-width:340px){.wall{grid-template-columns:repeat(3,1fr)}}
+.endText{font-size:15px;line-height:1.85;color:#fff;white-space:pre-line}
+.ledger{font-size:12.5px;color:#ffd42a;border:2px solid #5a4a00;padding:7px 10px;margin:0 0 12px;
+  font-variant-numeric:tabular-nums;background:#121000}
+
+/* ---------- 图鉴 ---------- */
+.foot{margin-top:auto;padding-top:14px;text-align:center;font-size:11.5px;color:#7d7d7d;line-height:1.7}
+.row{display:flex;gap:8px}
+.row .btn{flex:1}
+@media (max-width:340px){h1.title{font-size:19px}}
+
+/* ---------- 业态条 ---------- */
+.bizline{display:flex;flex-wrap:wrap;gap:5px;margin:0 0 10px;padding:0 2px}
+.bchip{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;line-height:1.5;
+  padding:3px 8px;border:2px solid #5a4a00;background:#121000;color:#ffd42a}
+.bchip b{font-weight:800;color:#fff}
+.bchip.early{border-color:#1c6b73;background:#04282c;color:#9be2e4}
+.bchip.base{border-style:dashed;opacity:.8}
+.bchip i{font-style:normal;opacity:.75;font-size:9px}
+
+/* ---------- 留名 ---------- */
+.sign{padding:14px 14px 15px}
+.signrow{display:flex;gap:8px;margin-top:9px}
+.signrow input{flex:1;min-width:0;background:#000;border:2px solid #fff;border-radius:0;
+  color:#fff;font:inherit;font-size:15px;padding:10px 12px;letter-spacing:.04em}
+.signrow input::placeholder{color:#6f6f6f}
+.signrow input:focus{outline:none;border-color:#ffd42a}
+.signrow .btn{flex:0 0 auto;width:auto;margin-top:0;padding:10px 18px;font-size:14.5px;box-shadow:0 3px 0 #8a7200}
+.signrow input{margin-top:0}
+.signmsg{margin-top:8px;font-size:12px;line-height:1.65;color:#a8a8a8;min-height:17px}
+.signmsg.ok{color:#7fe08a}.signmsg.hi{color:#ffd42a}
+.sign.done .signrow{opacity:.55}
+
+/* ---------- 名册 ---------- */
+.leader{margin:2px 0 12px;font-size:12px;color:#a8a8a8;line-height:1.65}
+.leader b{color:#ffd42a;font-weight:700}
+.hofnote{font-size:12px;line-height:1.75;color:#a8a8a8;margin:10px 0 4px;
+  padding:9px 11px;border:2px solid #3a3a3a;background:#000}
+.hofnote b{color:#9be2e4}
+.hrow{display:flex;align-items:center;gap:9px;padding:8px 2px;border-bottom:2px solid #1e1e1e;font-size:13px}
+.hrow:last-child{border-bottom:none}
+.hrow .rk{flex:0 0 34px;text-align:right;font-size:12.5px;color:#8f8f8f;letter-spacing:.02em;font-variant-numeric:tabular-nums}
+.hrow .hn{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.hrow .hn b{font-weight:600;font-size:13.5px;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hrow .hn i{font-style:normal;font-size:10.5px;color:#8f8f8f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hrow .hv{flex:0 0 auto;font-variant-numeric:tabular-nums;color:#ffd42a;font-size:12.5px}
+.hrow.top1{background:#1a1500}
+.hrow.top1 .rk{color:#ffd42a;font-size:14px;font-weight:800}
+.hrow.top1 .hn b{color:#fff;font-weight:800}
+.hrow.top3 .rk{color:#c9c9c9}
+.hrow .pio{flex:0 0 auto;font-size:9px;padding:1px 5px;
+  border:2px solid #1c6b73;color:#9be2e4;background:#04282c;letter-spacing:.06em}
+.hempty{padding:22px 6px;text-align:center;color:#7d7d7d;font-size:13px;line-height:1.8}
+#hof-list{margin-top:6px}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- 首页 -->
+  <section id="v-home">
+    <div class="hero">
+      <canvas id="hero-art" width="310" height="200"></canvas>
+      <h1>包子铺 · 人生模拟</h1>
+      <div class="sub">十二天，从一口蒸笼开始。<br>致敬 2014 年那款已经打不开的《财务包子铺》——原作是知乎为推广《金钱有术》做的 H5 软游戏，站点早已 502。这里是一版重制：规则自写，结局管够，赚到钱之后还能往奶茶、快餐、饭店、供应链和别人的项目里去。</div>
+      <div class="stats">
+        <div><span id="s-got">0</span><em>已解锁结局</em></div>
+        <div><span id="s-all">0</span><em>结局总数</em></div>
+        <div><span id="s-run">0</span><em>经营局数</em></div>
+      </div>
+      <div class="leader" id="s-leader"></div>
+      <button class="btn" id="b-resume" style="display:none">继续经营</button>
+      <button class="btn" id="b-start">开铺子</button>
+      <button class="btn ghost" id="b-codex">结局图鉴</button>
+      <button class="btn ghost" id="b-hof">本城百商 · 名册</button>
+      <button class="btn ghost" id="b-reset">清空存档</button>
+    </div>
+    <div class="foot"><span class="diag"></span></div>
+  </section>
+
+  <!-- 游戏 -->
+  <section id="v-play" class="hidden">
+    <div class="hud">
+      <div class="cell"><div class="k"><span>现金</span><span id="h-day"></span></div><div class="v" id="h-cash"></div><div class="bar cash"><i id="b-cash"></i></div></div>
+      <div class="cell"><div class="k"><span>口碑</span><span id="h-lv"></span></div><div class="v" id="h-rep"></div><div class="bar rep"><i id="b-rep"></i></div></div>
+    </div>
+    <div class="bizline" id="h-biz"></div>
+    <div class="chip hidden" id="resumed"></div>
+    <div id="stage"></div>
+    <div class="foot">进度自动记录在本机 · 关掉页面也能继续<br><span class="diag"></span></div>
+  </section>
+
+  <!-- 结局 -->
+  <section id="v-end" class="hidden">
+    <div class="tarot-wrap">
+      <div id="e-card"></div>
+      <div class="hint" id="e-hint">牌已扣下 · 轻触翻开</div>
+    </div>
+    <div class="card">
+      <span class="tag" id="e-chap"></span>
+      <div class="endText" id="e-text"></div>
+      <div class="lesson" id="e-lesson"><b>复盘</b><span id="e-le"></span></div>
+      <div class="hud" style="margin-top:14px">
+        <div class="cell"><div class="k"><span>现金</span></div><div class="v" id="e-cash"></div></div>
+        <div class="cell"><div class="k"><span>净资产</span></div><div class="v" id="e-net"></div></div>
+        <div class="cell"><div class="k"><span>口碑</span></div><div class="v" id="e-rep"></div></div>
+      </div>
+    </div>
+    <div class="card sign" id="e-sign">
+      <span class="tag">帮上留名</span>
+      <div class="signrow">
+        <input id="in-name" maxlength="8" placeholder="给自己留个名号" autocomplete="off" enterkeyhint="done">
+        <button class="btn" id="b-sign">上榜</button>
+      </div>
+      <div class="signmsg" id="sign-msg"></div>
+    </div>
+    <div class="row">
+      <button class="btn" id="b-again">再来一局</button>
+      <button class="btn ghost" id="b-codex2">图鉴</button>
+    </div>
+    <div class="row">
+      <button class="btn ghost" id="b-hof2">名册</button>
+      <button class="btn ghost" id="b-home">回首页</button>
+    </div>
+    <div class="foot" id="e-count"></div>
+  </section>
+
+  <!-- 图鉴 -->
+  <section id="v-hof" class="hidden">
+    <div class="card">
+      <span class="tag">HALL OF FAME · 本城百商</span>
+      <h1 class="title">名册</h1>
+      <div class="story" id="hof-sub"></div>
+      <div class="hofnote">按净资产排名，只记在这台机器上。最早留名的十位算<b>元从</b>——他们的名字会出现在后来人的牌局里，做你的房东、同行或投资人。先占住的位置，别人要用更高的价钱买回去。</div>
+      <div id="hof-list"></div>
+    </div>
+    <button class="btn ghost" id="b-hback">返回</button>
+  </section>
+
+  <section id="v-codex" class="hidden">
+    <div class="card">
+      <span class="tag">ENDING CODEX · 结局图鉴</span>
+      <div class="endName" style="font-size:21px">结局 <span id="cx-num" style="font-size:14px;color:#b8a99a"></span></div>
+      <div class="sub" id="cx-note" style="text-align:left;color:#a99b8b;font-size:13px"></div>
+      <div class="wall" id="cx-grid"></div>
+    </div>
+    <button class="btn ghost" id="b-back">返回</button>
+  </section>
+
+</div>
+<script>
+/*DATA-START*/
+const DB = {
+  start:{cash:50000,rep:60,days:12},
+  books:[
+    {n:"《先活下来：现金流比利润重要》",tag:"cash",why:"账面赚、手里空，是死在现金流上的铺子唯一救命的地方。"},
+    {n:"《一块钱算三年：成本结构》",tag:"cost",why:"把固定成本和变动成本算清楚，敢涨价也敢砍掉装修。"},
+    {n:"《街坊即资产：口碑的复利》",tag:"people",why:"顾客不是流量，是复购。回头客便宜的生意最先垮。"},
+    {n:"《别把命交给运气：风险与合同》",tag:"risk",why:"口头承诺、账期、对赌，全是没写进合同的隐形负债。"}
+  ],
+  tiers:{bad:"t-bad",ok:"t-ok",good:"t-good",top:"t-top"},
+  /* ---------- 业态：商业模式多样性，入场越早复利越久 ---------- */
+  formats:[
+    {k:"tea",   n:"奶茶铺",     ic:"cup",     fee:26000,  gross:2600, fixed:520,  val:46000,  tag:"cost",
+     d:"毛利最高的一条线，也是最快被抄的一条线。",
+     warn:{cash:-38000,rep:-6,risk:.30,end:"BZ_TEA",   le:"同一条街上自己打自己，客流不会新增，只会分摊。"}},
+    {k:"fast",  n:"快餐档口",   ic:"lantern", fee:40000,  gross:3300, fixed:680,  val:68000,  tag:"cash",
+     d:"只做午市两个半小时，翻台就是全部。",
+     warn:{cash:-56000,rep:-4,risk:.26,end:"BZ_OVER",  le:"多业态的第一笔成本不是钱，是人。"}},
+    {k:"rest",  n:"社区饭店",   ic:"wand",    fee:92000,  gross:6200, fixed:1500, val:165000, tag:"people",
+     d:"最慢的生意，也最像资产。",
+     warn:{cash:-128000,rep:-8,risk:.30,end:"BZ_REST", le:"没有标准化的厨房，饭店就是一口口孤灶。"}},
+    {k:"supply",n:"中央供应链", ic:"serpent", fee:68000,  gross:2600, fixed:420,  val:120000,  tag:"cost",
+     d:"给同行供货，赚的不是面钱，是账期。",
+     warn:{cash:-96000,rep:-5,risk:.28,end:"BZ_SUPPLY",le:"你把账期给了别人，就把现金流给了别人。"}},
+    {k:"franch",n:"加盟授权",   ic:"key",     fee:18000,  gross:3000, fixed:220,  val:34000,  tag:"risk",
+     d:"收品牌的租金，赌别人的品控。",
+     warn:{cash:-24000,rep:-10,risk:.36,end:"BZ_FRANCH",le:"授权出去的不只是招牌，还有你全部的信誉余额。"}},
+    {k:"fund",  n:"对外投资",   ic:"coin",    fee:48000,  gross:1200, fixed:0,    val:105000,  tag:"cash",
+     d:"把钱放进别人的项目，回报永远在后面。",
+     warn:{cash:-70000,rep:-3,risk:.40,end:"BZ_FUND",  le:"你看不懂的项目，唯一看得懂的是它的收益率。"}}
+  ],
+  /* 先入局：入场越早，同一笔钱复利越久 */
+  firstMove:{per:0.045,cap:0.42},
+
+  /* ---------- 结局 ---------- */
+  endings:{
+    /* 终局 */
+    FIN_IPO:{n:"敲钟那天，老包没去",t:"top",arc:"crown",tx:"连锁第一百家店开业当天，券商把上市材料送来。你正在后厨揉面，手上有面，就没去。\n后来它成了你见过最贵的一个仪式——不是门票贵，是你花了十二年才明白那天真正在敲什么。",le:"从一口蒸笼到上市公司，中间隔着的从来不是勤奋，而是每一次现金不断链。"},
+    FIN_CHAIN:{n:"城市早餐地图上有你的名字",t:"good",arc:"wheel",tx:"十七家直营店，中央厨房在城西，配送车凌晨四点出发。\n你没上市，也不打算上市。员工里有三个人跟你从摊子时代就在一起。",le:"规模化真正的门槛是管理成本的增长速度必须低于毛利增长速度。"},
+    FIN_LEGACY:{n:"开了三十年的那家小店",t:"good",arc:"steamer",tx:"街坊换了三轮，你还在。\n没人采访你，没有分店，但这条街上有一半的人是在你这儿长大的。老板退休前说：这铺子不是我开的，是所有人一起没让它倒。",le:"口碑是复利，而复利的前提是活得足够久。"},
+    FIN_OK:{n:"日子过得去",t:"ok",arc:"sun",tx:"一家店，两口子，一个帮工。月底存下三五千。\n不风光，但也没欠谁。你把它叫作「还行」。",le:"跑平成本、不靠杠杆，本身已经赢过八成的创业者。"},
+    FIN_SURVIVE:{n:"勉强喘气",t:"ok",arc:"hourglass",tx:"账上刚够下个月的房租。你把蒸笼擦了又擦，明天还得早起。\n不算成功，但你没跑。",le:"活下来不等于健康，长期贴着现金流红线经营就是在等一个意外。"},
+    FIN_QUIT:{n:"我关掉了那口蒸笼",t:"ok",arc:"key",tx:"没有破产，没有事故。某天早上四点十分，你在门口站了一会儿，然后回去把火关了。\n转让费不高，你没还价。你终于睡了个整觉，醒来第一件事是想吃包子。",le:"退出也是一个决策。主动离场和被迫清盘的差别，在于你还留着选择权。"},
+    FIN_CLOSE:{n:"卷帘门拉下来了",t:"bad",arc:"tower",tx:"最后一天你把剩下的包子送给了隔壁五金店。\n他没问为什么，你也没说。十二天，从有铺子到没铺子。",le:"大多数倒闭不是死于不赚钱，而是死于钱不够付下一个到期日。"},
+
+    /* 破产线 */
+    BK1:{n:"被自己的账本逼走",t:"bad",arc:"anchor",tx:"供货商堵门，房东堵门，你从后门走的。\n没签合同，所以没得谈。",le:"创业初期，负债的期限比负债的数额更要命。",tag:"cash"},
+    BK2:{n:"救命书选错了",t:"bad",arc:"dice",tx:"你在书店里挑了最厚的一本，觉得厚的应该更管用。\n读完第一章，铺子被人接手了。",le:"救命的方法要对症。药不对，钱是白扔的。"},
+    BK3:{n:"借了不该借的钱",t:"bad",arc:"serpent",tx:"三个月的过桥资金，年化听着不高，因为你只听见了「不高」。\n第四个月你开始用另一笔钱还这笔钱。",le:"用短期高息资金补长期投入，是现金流最经典的死法。"},
+    BK4:{n:"第二次破产是不必要的",t:"bad",arc:"hourglass",tx:"第一次救活你的是别人，第二次没人伸手。\n你才懂：续命只有一次，是运气，不是能力。",le:"重整机会的成本极高，第二次通常不再存在。"},
+
+    /* 起步章 */
+    E_RENT:{n:"房东的免费午餐",t:"bad",arc:"anchor",tx:"押一付六，签约当天你还请中介吃了顿饭。\n第三个月客流没起来，第六个月房东涨了四成。你付了十二个月的房租，只做了三个月生意。",le:"预付租金等于把流动资金换成了一项无法退出的长期资产。",tag:"cash"},
+    E_CENTER:{n:"死在好地段",t:"bad",arc:"coin",tx:"商场负一层，人流是真的大，扣点也是真的狠。\n你算清了每只包子的毛利，算漏了「毛利乘以销量还得先减去保底租金」。",le:"高流量渠道的实际成本是保底租金加扣点，而不只是提成比例。",tag:"cost"},
+    E_BACKSTREET:{n:"没人知道你在这儿",t:"bad",arc:"lantern",tx:"巷子最深处的铺面便宜到让你觉得自己很聪明。\n一个月后你发现了原因。",le:"租金便宜的位置，差额会以「获客成本」的名义重新向你收费。"},
+    E_DECOR:{n:"装修是最好的包子",t:"bad",arc:"mask",tx:"黄铜吊灯、实木台面、手写菜单。客人拍照很多，包子没人买。\n你花了三万块装修，却没钱多进两袋面粉。",le:"固定资产投入不产生现金流，只在产生客流时才值得。",tag:"cost"},
+    E_STEAMER:{n:"省了两百块",t:"bad",arc:"scythe",tx:"买了二手蒸箱，第三天漏汽，第七天罢工，第十一天你在维修师傅的报价单前站了很久。\n那两天你只能拒掉一半订单。",le:"影响交付能力的低价设备，节省的钱是假的，误工的损失是真的。"},
+    E_FLOUR:{n:"面粉涨价那天",t:"bad",arc:"coin",tx:"你没囤货，因为上个月刚涨过一轮。这次涨完，你的售价没动。\n每只包子从赚三毛变成亏两毛。",le:"原材料涨价时，不锁价也不传导，等于自己吞下全部成本差。",tag:"cost"},
+    E_PRICEUP:{n:"涨价最快的老板",t:"bad",arc:"scale",tx:"成本涨两毛，你涨五毛，觉得稳。\n老客人再也不来了，新客人只在别家买。",le:"定价权来自不可替代，而不是成本加成。口碑一破，涨价带来的只有缩量。",tag:"people"},
+    E_RELATIVE:{n:"给小舅子发工资",t:"bad",arc:"wand",tx:"他没来上班，但每月十五号照领。你妈说你不懂事。\n半年后你算了一次人工，才发现这条隐形成本比面粉还贵。",le:"关联方薪酬是最容易被漏记的固定成本。",tag:"cost"},
+    E_HIRE:{n:"雇了个大师傅",t:"bad",arc:"serpent",tx:"他手艺确实好，也要了双倍工资、股份、和一个单间。\n两个月后他带走了配方，另开了一家。",le:"把核心能力外包给单一个人，等于把关键资源押在一段随时可终止的关系上。",tag:"risk"},
+    E_FRANCHISE:{n:"加盟的骗局",t:"bad",arc:"dice",tx:"总部收了五万加盟费，给了你一箱速冻包子和一本手册。\n手册里唯一有用的句子是「总部不承诺经营效果」。",le:"当对方靠收加盟费而不是靠你赚钱盈利时，你的钱就是它的利润。",tag:"risk"},
+    E_HEALTH:{n:"没办证的那一夜",t:"bad",arc:"eye",tx:"被查的那天早上你正在蒸第一批。罚款、停业、贴告示。\n告示在门口挂了三天，第四天队伍重新开始排，但那是别人家的。",le:"合规成本看着像浪费，实际是买下一张不许你营业的否决权的豁免券。",tag:"risk"},
+    E_LEASE:{n:"口头协议的威力",t:"bad",arc:"knot",tx:"房东说「一年之后还是这个价」，你信了，还多交了两个月的钱做诚意。\n第二年翻了三倍。",le:"没有书面约定的优惠，成本为零，因为反悔不需要代价。",tag:"risk"},
+    E_SIGN:{n:"招牌砸了",t:"bad",arc:"tower",tx:"你为了省八百块，自己焊的灯箱。台风夜掉下来，砸了隔壁的车。\n赔完，铺子刚好也不用开了。",le:"省下的那八百块，是把或有负债留在了自己账上。",tag:"risk"},
+
+    /* 发展章 */
+    E_DELIVERY:{n:"平台的数字",t:"bad",arc:"wheel",tx:"外卖单量翻了三倍，你很兴奋。\n月底对账：抽成、配送、满减补贴、竞价排名，剩下的钱不如堂食一周。\n你涨了三倍的价格，换来零利润。",le:"渠道补贴是别人家的获客成本，你的低毛利是你的。抽成加满减之后，很多订单是负毛利。",tag:"cost"},
+    E_INFLUENCER:{n:"网红来了三天",t:"bad",arc:"moon",tx:"排队两百米，你连夜多雇了两个人、多进了三倍的面粉。\n热度过去，队伍散了，多雇的人和多进的货都还在。",le:"流量带来的是一次性收入，承接流量的是永久性成本。",tag:"cash"},
+    E_CARD:{n:"会员卡的钱不是你的钱",t:"bad",arc:"cup",tx:"办卡收了十八万，你把它当成利润，开了分店。\n那十八万是你欠顾客的一万只包子。",le:"预收款在会计上是负债不是收入。用负债去投固定资产，是双重错配。",tag:"cash"},
+    E_DISCOUNT:{n:"满减满减，减到没电",t:"bad",arc:"coin",tx:"你跟着同行打价格战，客人多了一半，毛利少了六成。\n同行先撑不住了——他没撑，是因为他在别的店补，你只有这一家。",le:"价格战里最贵的是「只有单一收入来源」的那个人。",tag:"cost"},
+    E_INSPECT:{n:"后厨的那滩水",t:"bad",arc:"eye",tx:"检查员拍了照，视频传得比你的招牌还快。\n三个月后你重新开业，门口贴了新店名，没人认。",le:"食品安全是一次性不可逆风险，期望损失无法用保险完全覆盖。",tag:"risk"},
+    E_RATS:{n:"半夜的口碑",t:"bad",arc:"mask",tx:"一条评论写了七个字，配了张照片。你的口碑一夜跌到谷底，再没回来。\n你花了一年的好评，被三分钟清零。",le:"口碑的累积是线性的，崩塌是指数的。",tag:"people"},
+    E_CREDIT:{n:"赊给老朋友",t:"bad",arc:"knot",tx:"他包了整层的早餐，每月结一次。他说都是熟人。\n半年后他换了城市，你的应收账款变成了一段友情。",le:"应收账款是有账期的赠品。没有第三方担保的赊销，风险全在你身上。",tag:"risk"},
+    E_CASHFLOW:{n:"利润表上是赚的",t:"bad",arc:"scale",tx:"每月账面利润两万，账上现金越来越少。\n你后来才看清：钱在冰柜里，在供货商定金里，在房东那笔押金里。",le:"利润是观点，现金是事实。存货和押金都是现金的另一副面孔。",tag:"cash"},
+    E_OVERTIME:{n:"帮工走了",t:"bad",arc:"wand",tx:"你让她从早六点干到晚十点，多给了三百块。\n她走的时候只说了一句：我记不住你家包子有几个褶，但我记得我几点能睡。",le:"人力成本的替代项是流失率与培训成本，低工资常常只是把成本挪了个地方。",tag:"people"},
+    E_MASTER:{n:"配方给了别人",t:"bad",arc:"key",tx:"你想多卖一点，就答应了代工厂贴牌。他们学会了你的褶子。\n第二年他们开了自己的牌子，便宜两块。",le:"用核心技术换渠道销量，本质是一次资产折价出售。",tag:"risk"},
+    E_PEST:{n:"老鼠事件",t:"bad",arc:"serpent",tx:"你在仓库看见了第三只，选择了相信它会自己走。\n一个月后你为当初没做的两百块消杀，付了整个店。",le:"低概率高损失的风险，不处理就是把它留在了资产负债表外。",tag:"risk"},
+    E_LABOR:{n:"社保这笔账",t:"bad",arc:"anchor",tx:"两个帮工，你说「发现金吧，我给你多五百」。\n后来工伤那份赔偿单，比你省下的钱厚得多。",le:"用工合规是隐性保险费，省下它是把自己变成承保人。",tag:"risk"},
+    E_LEND:{n:"借给亲戚的钱",t:"bad",arc:"cup",tx:"他保证两个月还，你保了一年的利息都给了出去。\n铺子周转不开的时候，你才想起自己并没有借出钱的权利，只是借出了生存的机会。",le:"小企业的每一笔非经营性借出，都是从自己的营运资金里抽血。",tag:"cash"},
+    E_ADVERT:{n:"投了广告位",t:"bad",arc:"lantern",tx:"你在本地大号投了两万，涨了三千粉。\n第二次没投，销量也掉回原样。你才知道那两万买的是「不掉下来」。",le:"没有复购支撑的营销费用是消耗品，不是资产。",tag:"cost"},
+
+    /* 扩张章 */
+    E_INVEST:{n:"投资人的三个月",t:"bad",arc:"dice",tx:"他们给了两百万，条件是季度增长。第二个季度你只涨了十一。\n回购条款启动，你连铺子带车都签了字。",le:"增长对赌是把经营风险转换成个人无限责任。",tag:"risk"},
+    E_BRANCH:{n:"第二家店开在对面",t:"bad",arc:"wheel",tx:"两家店共用一批客人，成本翻倍，收入没翻倍。\n你终于把一条街的生意做成了自己的左右手互搏。",le:"新店是否创造价值，只看它是抢走了存量还是带来了增量。",tag:"cost"},
+    E_BRANCH2:{n:"四家店，一个人在管",t:"bad",arc:"hourglass",tx:"你骑电动车在四家店之间跑，每天早上第一个到，晚上最后一个走。\n第五家店不是开不动，是你这个人先报废了。",le:"组织能力扩张跟不上门店扩张时，规模就是负债。",tag:"people"},
+    E_FACTORY:{n:"中央厨房的折旧",t:"bad",arc:"scythe",tx:"厂房、车、证、二十个人。产能是十家店，你现在有三家。\n每卖一只包子，你都在替那台闲置的机器付折旧。",le:"固定成本摊薄依赖产能利用率，未使用的产能每天都在产生真实亏损。",tag:"cost"},
+    E_TRADEMARK:{n:"商标不是你的",t:"bad",arc:"key",tx:"注册那天你让朋友「顺手帮忙」办的，写的他的名字。\n他回来要五万块转让费，还带了律师。",le:"知识产权的登记主体是资产归属本身，口头信任不能替代登记。",tag:"risk"},
+    E_LOAN:{n:"经营贷买了车",t:"bad",arc:"anchor",tx:"银行说额度批了，你先提了辆新车，因为「反正是低成本」。\n第二年需要周转的时候，你没有任何额度了。",le:"信贷额度是应急用的流动性储备，把它变成消费就同时失去了钱和缓冲。",tag:"cash"},
+    E_CONTRACT:{n:"学校食堂的大单",t:"bad",arc:"knot",tx:"一单顶三个月。你为此多租了厂房、多雇了人。\n合同到期没续，你的成本结构还留在那一单里。",le:"为单一客户定制的产能，续约风险等于全部沉没成本。",tag:"risk"},
+    E_PARTNER:{n:"合伙人的账本",t:"bad",arc:"sword",tx:"他管钱，你管面。你说信任就是不讲清楚。\n第三年他发现他理解的分成跟你的差了一半，你们在派出所门口谈了两个小时。",le:"合伙机制不清的成本，会在关系破裂时一次性全额计提。",tag:"people"},
+    E_SUPPLY:{n:"供货商倒了",t:"bad",arc:"serpent",tx:"他给你的价最低，所以你只从他那儿进。\n他跑路那天你没有面粉，只能告诉排队的人今天不开张。",le:"供应商集中度是隐性风险，最便宜的单价常由最高的依赖度换得。",tag:"risk"},
+    E_GENTRIFY:{n:"街要拆了",t:"bad",arc:"tower",tx:"围挡立起来那天你才看到公告。补偿按租约算，你的租约还剩两个月。\n你搬去的地方，一个熟人都没有。",le:"外部政策风险通常无法通过努力对冲，只能通过合同和备份对冲。",tag:"risk"},
+    E_AI:{n:"智慧包子",t:"bad",arc:"eye",tx:"花了十二万上「智慧餐饮系统」，能看数据，能人脸识别。\n数据告诉你生意在跌，人脸告诉你客人不再来。",le:"数字化工具的价值只有在你已有可复制的运营方法时才成立。",tag:"cost"},
+    E_LIVESTREAM:{n:"直播间的神话",t:"bad",arc:"wheel",tx:"你连夜做速冻装上了直播，一场卖了两万单。\n冷链、坏损、售后、平台抽成结完算，亏了四万，还搭进去两个人没睡觉。",le:"边际履约成本高的订单，规模越大越亏。毛利要按到岸口径算。",tag:"cost"},
+    E_RUSH:{n:"赶工期",t:"bad",arc:"scythe",tx:"新店你只给了一周装修，验收走过场。消防没过，重做。\n两周的工期变六周，房租照付，员工照发。",le:"返工是唯一一项成本会被计算两次的支出。",tag:"cash"},
+    E_PRICEWAR:{n:"两块九的战争",t:"bad",arc:"sword",tx:"你把价格砍到两块九，逼走了对手。\n他也回来了，带着比他更便宜的资本。你还在同一口蒸笼里。",le:"以亏损换出清，前提是你比对手更耐亏且资金更久。"},
+    E_FAMILY:{n:"家里那笔钱",t:"bad",arc:"cup",tx:"你把给母亲治病预留的十二万投进了新店，想着三个月就回来。\n三个月没回来，第五个月医院也来了电话。",le:"永远不要给不可中断的个人义务做经营性再投资。",tag:"people"},
+    E_GREED2:{n:"什么都想做",t:"bad",arc:"coin",tx:"包子、馄饨、豆浆、炒菜、夜宵、伴手礼。菜单厚得像书。\n备料翻倍，损耗翻倍，客人还是只点包子。",le:"过宽的SKU会同时抬高库存、损耗和管理成本，却不抬高复购。",tag:"cost"},
+    E_BURNOUT:{n:"凌晨四点的第两千天",t:"bad",arc:"hourglass",tx:"你没亏钱，也没生病，只是有天早上起来不想动了。\n你把铺子转让了，价格比你心里想的低很多。你不在乎。",le:"创始人可持续性是经营模型里的隐含约束，它一旦失效，其余变量不再有意义。",tag:"people"},
+    E_MISREPORT:{n:"报了假账的那一年",t:"bad",arc:"eye",tx:"为了续贷，你把报表做好看了些。第二年被抽贷，第三年被查。\n最后不是生意的问题。",le:"报表造假会同时抬高融资成本和存续风险，是最贵的短期收益。",tag:"risk"},
+    E_SLOW:{n:"什么都想省",t:"bad",arc:"mask",tx:"省了推广、省了包装、省了员工、省了面粉。你每样都对了，客人却越来越少。\n你最后不明白：便宜不是产品。",le:"全面压缩成本会把成本优势变成质量劣势，成本结构要区分可压缩项与生存项。",tag:"cost"},
+    E_WARM:{n:"免费吃的那一个月",t:"bad",arc:"sun",tx:"你想做点好事，贴了张纸：早起的老人才可以免费领。\n来的人排到街尾，你一个月送出八千只包子，收不回一分钱。",le:"补贴必须设边界。没有筛选机制的公益就是无上限负债。",tag:"cash"},
+    /* 业态扩张结局 */
+    BZ_TEA:{n:"自己开在自己隔壁",t:"bad",arc:"cup",tx:"包子铺隔壁五十米，你开了自己的奶茶铺。\n两边都没多赚，两边都少赚了。月底一算，房租和人工各多一份。",le:"同一商圈内的多业态只有在客群不重叠时才成立，否则那叫自我蚕食。",tag:"cost"},
+    BZ_REST:{n:"一口口孤灶",t:"bad",arc:"wand",tx:"饭店开起来第三周，师傅请假，当天十二桌退了一半。\n你才发现这家店的产能不在厨房里，在那一个人身上。",le:"没有中央厨房和标准配方，餐饮的规模无法复制，只能重复雇人。",tag:"people"},
+    BZ_FRANCH:{n:"招牌替你闯了祸",t:"bad",arc:"key",tx:"城东那家加盟店早上没到货，用隔夜的馅蒸给了老顾客。\n照片是你自己的招牌。你解释了三遍，没人听。",le:"加盟是杠杆化的品牌：利润按比例分，事故按全额算。",tag:"risk"},
+    BZ_SUPPLY:{n:"同行欠你的，也是你的坑",t:"bad",arc:"serpent",tx:"你开始给十七家同行供货，账期一个月。\n第九家倒掉那天，你才明白：应收账款不是收入，是别人免费的期权。",le:"供应链金融的收益来自账期，风险也全部来自账期。",tag:"cash"},
+    BZ_FUND:{n:"换了注册地的那个项目",t:"bad",arc:"coin",tx:"投的时候说十八个月回本，合同里写着争议提交境外仲裁。\n后来团队还在，公司没了。",le:"看不懂回报来源的投资，本质是把不确定性包装成收益率。",tag:"cash"},
+    BZ_OVER:{n:"六条线，一条都没人看",t:"bad",arc:"tower",tx:"包子、奶茶、快餐、饭店、供货、投资。你一个人管六摊。\n最后一个都没管坏，只是全都管不过来。",le:"管理幅度是硬约束，多业态的前提是先有能复制的组织。",tag:"people"},
+    BZ_LONE:{n:"全押一条线",t:"bad",arc:"anchor",tx:"那一年那条街改造，围挡一立就是八个月。\n你只有一条业务线，所以围挡挡的是全部。",le:"集中的好处是效率高，代价是没有第二次机会。",tag:"risk"},
+    BZ_PORT:{n:"一条线垮了，别的线还在",t:"good",arc:"wheel",tx:"奶茶铺撑了七个月就关了，你把它剩下的设备搬进快餐档口。\n那年年底，包子铺和饭店互相养着，你活了下来。",le:"组合的价值不在于每条线都赚，而在于任何一条线死掉时你不用清盘。"},
+    BZ_FIRST:{n:"先占住那条街的人",t:"top",arc:"lantern",tx:"你进场那天，那条街上还没有第二家做这件事的。\n后来所有人都进了这条街，但最好的位置、最便宜的房租、最早的一批熟客，都记在你名下。",le:"先入局的优势不是胆子大，是早期用低成本换到了别人后来花高价也买不到的时间。"},
+    BZ_NAME:{n:"你成了别人牌局里的名字",t:"top",arc:"eye",tx:"很多年后，另一个人在第一天就盘下了你当年那条街的铺面。\n他翻到的合同抬头上，写着你的名字。",le:"生意做完只剩两样东西：账上的现金，和这条街上还愿意提你的那句「那家是他开的」。"}
+  },
+  /* ---------- 场景 ---------- */
+  scenes:[
+    /* 第一章 起步 */
+    {c:1,t:"盘下一间铺面",s:"城南老小区门口，五十平，做了八年早餐。房东 {landlord} 要押一付六，还要一千「喝茶费」。你手里有五万。",o:[
+      {l:"签。押一付六，先把地方占住",fx:{cash:-36000,rep:2,risk:.45},end:"E_RENT",le:"预付的六个月房租变成了无法退出的长期资产。",tag:"cash"},
+      {l:"谈到押一付三，写进合同",fx:{cash:-19000,rep:4,inv:1},le:"账期就是现金流。少付三个月，等于凭空多了三个月的试错期。"},
+      {l:"转身去找更便宜的巷尾铺面",fx:{cash:-8000,rep:-6,risk:.6},end:"E_BACKSTREET",le:"便宜的位置会用客流把差额补回来。"},
+      {l:"给中介塞个红包，让他去跟房东谈",fx:{cash:-3000,rep:1,inv:1},le:"把谈判外包给利益相关方，通常比自己谈更贵也更慢。"},
+      {l:"改盘商场负一层，人流大",fx:{cash:-30000,rep:8,risk:.55},end:"E_CENTER",le:"保底租金加扣点，才是好地段的真实单价。",tag:"cost"}]},
+    {c:1,t:"第一批家伙什",s:"蒸箱、和面机、冰柜、案板。全新的要四万八，二手的两万，还有一家回收商说「两万八，包安装，保修半年」。",o:[
+      {l:"全套二手，能蒸就行",fx:{cash:-20000,risk:.55},end:"E_STEAMER",le:"影响交付能力的低价设备，省的钱是假的。"},
+      {l:"两万八那家，要书面保修",fx:{cash:-28000,rep:3,inv:2},le:"设备的关键不是新旧，而是故障时有无兜底条款。",tag:"risk"},
+      {l:"全新四万八，咬牙",fx:{cash:-48000,inv:3},le:"固定资产的回报要靠客流兑现，你还没验证客流就先把现金换成铁了。",tag:"cash"},
+      {l:"跟二手商口头约定租一台，用坏再换",fx:{cash:-9000,rep:-2,inv:1,risk:.5},end:"E_LEASE",le:"口头约定没有代价，反悔才有。",tag:"risk"}]},
+    {c:1,t:"招牌和灯",s:"你要不要花三万块把门头做成这条街最好看的那个？隔壁 {rival} 的粥铺招牌掉了漆。",o:[
+      {l:"三万。要做就做最好的",fx:{cash:-30000,rep:6,risk:.55},end:"E_DECOR",le:"黄铜吊灯不产生现金流。"},
+      {l:"三千块，灯箱加喷绘",fx:{cash:-3000,rep:4},le:"识别度靠位置、亮度和重复曝光，不靠造价。"},
+      {l:"先不装，省下来买面粉",fx:{cash:0,rep:-4},le:"零曝光的代价是获客成本转由口碑承担，而你还没有口碑。",tag:"people"},
+      {l:"自己焊一个架子的",fx:{cash:-800},end:"E_SIGN",le:"省下的八百块，是把或有负债留在自己账上。",tag:"risk"}]},
+    {c:1,t:"人手",s:"你一个人从凌晨三点揉面到上午十点。有人推荐一个干了二十年的大师傅，月薪一万二，还要分红。",o:[
+      {l:"请。手艺就是护城河",fx:{cash:-24000,rep:8,risk:.5},end:"E_HIRE",le:"把核心能力押在一段随时可终止的关系上。",tag:"risk"},
+      {l:"请个帮工，自己练褶子",fx:{cash:-6000,rep:3,inv:1},le:"先把可复制的技能留在自己身上，再考虑买别人的手艺。"},
+      {l:"让小舅子来，管吃管住给两千",fx:{cash:-2000,rep:-3,risk:.5},end:"E_RELATIVE",le:"关联方薪酬是最容易被漏记的固定成本。",tag:"cost"},
+      {l:"加盟一个牌子，用它的配方和名义",fx:{cash:-26000,rep:4,risk:.5},end:"E_FRANCHISE",le:"你付的加盟费，是别人的利润。",tag:"risk"}]},
+    {c:1,t:"开业第一天",s:"你决定定价。肉包成本一块四，街上卖两块；素包成本六毛，卖一块。",o:[
+      {l:"肉包一块九，先把人拉进来",fx:{cash:2400,rep:6},le:"低于对手的定价换来客流，前提是毛利还能覆盖固定成本。你的每只只赚五毛。",tag:"cost"},
+      {l:"两块，随大流，把钱留给馅料",fx:{cash:3200,rep:5,inv:1},le:"跟随定价加品质投入，是新品类最稳的组合。"},
+      {l:"两块五，用最好的馅",fx:{cash:3600,rep:-2},le:"这条街没人认识你，高价需要溢价理由，而理由需要时间建立。",tag:"people"},
+      {l:"素包免费送，肉包收费",fx:{cash:-600,rep:9},le:"引流品的成本要当作广告费核算，不能当损耗。"}]},
+    /* 第二章 发展 */
+    {c:2,t:"面粉又涨了",s:"给你供货的 {supplier} 把价从一百一十涨到一百三十五一袋。你算了一下，每只包子从赚三毛变亏两毛。",o:[
+      {l:"涨价五毛，成本得转出去",fx:{cash:1200,rep:-14,risk:.6},end:"E_PRICEUP",le:"定价权来自不可替代，而不是成本加成。",tag:"people"},
+      {l:"价不动，每个包子的馅少放一点",fx:{cash:900,rep:-9,risk:.34},le:"隐性减量是最容易被察觉的涨价，被发现时口碑要一次性归零。",tag:"people"},
+      {l:"不涨就不动，先扛着，售价不变",fx:{cash:-5200,rep:4,risk:.55},end:"E_FLOUR",le:"既不锁价也不传导，等于自己吞下全部成本差。",tag:"cost"},
+      {l:"囤三个月的量，锁住成本",fx:{cash:-9000,rep:2},le:"囤货锁价把成本风险换成现金风险，还要搭上仓储和资金占用。",tag:"cash"}]},
+    {c:2,t:"外卖平台来敲门",s:"你现在的堂食毛利三十八，一天卖四百只。",p:"签约上架：抽成两成，还要参加满减活动，另有竞价排名位。",
+      o:[
+      {l:"上，量才是一切",fx:{cash:6000,rep:4,risk:.55},end:"E_DELIVERY",le:"抽成加满减之后，很多订单是负毛利。",tag:"cost"},
+      {l:"买竞价排名位，投了两个月",fx:{cash:-9000,rep:4,risk:.45},end:"E_ADVERT",le:"没有复购支撑的营销费用是消耗品，不是资产。",tag:"cost"},
+      {l:"只做三公里自配送",fx:{cash:900,rep:5,risk:.22},le:"自建配送省下抽成，代价是运力风险和一块不小的固定资产。",tag:"risk"},
+      {l:"不做，把堂食做好",fx:{cash:300,rep:6},le:"放弃渠道就是把增长交给复购，前提是复购真的存在。",tag:"people"}]},
+    {c:2,t:"探店视频爆了",s:"明天开始，客流可能翻三倍。",p:"一个四十万粉的账号拍了你的蒸笼，评论区两百人说要来。你只有一口蒸箱。",
+      o:[
+      {l:"连夜多雇两人、多进三倍面粉",fx:{cash:-11000,rep:7,risk:.55},end:"E_INFLUENCER",le:"流量是一次性收入，承接流量的是永久性成本。",tag:"cash"},
+      {l:"限流：每天只做六百只，卖完收摊",fx:{cash:2200,rep:8},le:"供给受限时，用确定性换口碑比用加班换流水更划算。"},
+      {l:"加价三成，趁热度",fx:{cash:3800,rep:-11,risk:.28},le:"对短期流量的定价剥削会在热度退去后被算总账。",tag:"people"},
+      {l:"照常，什么都不做",fx:{cash:800,rep:-2},le:"不做任何承接安排的爆红，等于把送上门的资产退回给路人。"}]},
+    {c:2,t:"会员卡",s:"你正好想开第二家店，缺的就是这一笔。",p:"有人提议做储值卡：充三百送八十。三天收进来十八万预收款。",
+      o:[
+      {l:"拿十八万去开分店",fx:{cash:180000,rep:5,risk:.5},end:"E_CARD",le:"预收款在会计上是负债不是收入。",tag:"cash"},
+      {l:"十八万单独存着，只做兑付",fx:{cash:-4000,rep:9,inv:1},le:"把储值放在受限账户里，等于给自己装了一道强制刹车。",tag:"cash"},
+      {l:"跟着做满减：满二十减八",fx:{cash:-3400,rep:3,risk:.4},end:"E_DISCOUNT",le:"满减的每一分都从你自己的毛利里出。",tag:"cost"},
+      {l:"充三百送八十改成送券",fx:{cash:6000,rep:4},le:"送券把折扣延迟到未来且有核销率，实际成本低于直接让利。",tag:"cost"}]},
+    {c:2,t:"卫生检查",s:"整改要花两千块和一天停业。",p:"通知第二天来查后厨。你现在的地漏有点返味，挡鼠板还没买。",
+      o:[
+      {l:"关门一天，全改",fx:{cash:-3200,rep:4,inv:1},le:"停业整顿是买断一次不可逆风险的定价，通常远便宜过后悔。",tag:"risk"},
+      {l:"边营业边改，晚上赶工",fx:{cash:-1200,risk:.4},end:"E_INSPECT",le:"风险敞口没关，只是把整改成本换成睡眠。",tag:"risk"},
+      {l:"检查员是老朋友，没事",fx:{cash:0,risk:.7},end:"E_HEALTH",le:"把监管的裁量当作可依赖的关系，是把经营权交给别人。",tag:"risk"},
+      {l:"买套一次性的摆拍厨具",fx:{cash:-600,rep:-5,risk:.5},end:"E_RATS",le:"针对检查的合规只降低被查概率，不降低出事概率。",tag:"risk"}]},
+    {c:2,t:"老朋友的单子",s:"{pioneer} 说「都是熟人，签什么合同」。",p:"写字楼那位老主顾要包下整层早餐，每月八千，先供货后结。",
+      o:[
+      {l:"答应，熟人的钱最好赚",fx:{cash:8000,rep:2,risk:.6},end:"E_CREDIT",le:"没有第三方担保的赊销，风险全在你身上。",tag:"risk"},
+      {l:"做，但改成月结、押金、白纸黑字",fx:{cash:6000,rep:4,inv:1},le:"把关系变成合同不是不信任，是让这段关系可持续。",tag:"risk"},
+      {l:"借十万给老周周转，让他先付货款",fx:{cash:-4200,rep:1,risk:.5},end:"E_LEND",le:"小企业的每一笔非经营性借出，都是从营运资金里抽血。",tag:"cash"},
+      {l:"婉拒，专心做街坊",fx:{cash:800,rep:3},le:"放弃应收账款换确定性，是小店合理但不增长的选择。",tag:"people"}]},
+    {c:2,t:"月底对账",s:"你翻了三遍，想不通。",p:"账本上写着：这个月利润两万二。你的银行卡余额从五万八变成四万一。",
+      o:[
+      {l:"钱肯定在，先不管",fx:{cash:-3000,risk:.6},end:"E_CASHFLOW",le:"利润是观点，现金是事实。",tag:"cash"},
+      {l:"一项项找：冰柜里的存货、房东的押金、老周的应收",fx:{cash:2000,rep:3,inv:1},le:"现金流的漏洞几乎总在存货、押金和应收这三处。",tag:"cash"},
+      {l:"把利润全换成存货，仓库里堆到顶",fx:{cash:-14000,rep:2,risk:.45},end:"E_PEST",le:"存货堆到顶的那天，风险从价格变成生物。",tag:"cash"},
+      {l:"帮工要求涨薪，你拒绝并让她多担两小时",fx:{cash:1800,rep:-12},end:"E_OVERTIME",le:"低工资常常只是把成本挪了个地方。",tag:"people"}]},
+    {c:2,t:"隔壁开了家新的",s:"你的客人早上少了一半。",p:"两块九的肉包，开业送鸡蛋。他背后是连锁品牌，一年亏得起两百万。",
+      o:[
+      {l:"跟着降到两块九",fx:{cash:-9000,risk:.6},end:"E_PRICEWAR",le:"价格战里最贵的是只有单一收入来源的那个人。",tag:"cost"},
+      {l:"价不动，加送现磨豆浆",fx:{cash:1200,rep:7,inv:1},le:"用低边际成本的附加品对冲价格差，比直接砍价保毛利。",tag:"cost"},
+      {l:"把服务做成他做不到的：记住每个熟客",fx:{cash:400,rep:10},le:"不可规模化的体验是单体店对连锁唯一的护城河。",tag:"people"},
+      {l:"把配方交给代工厂做速冻，走量反击",fx:{cash:7000,rep:-4,risk:.5},end:"E_MASTER",le:"用核心技术换渠道销量，是一次资产折价出售。",tag:"risk"}]},
+    /* 第三章 扩张 */
+    {c:3,t:"投资人上门",s:"你需要钱开三家店，也需要有人替你验证这条路。坐在对面给你报了个价的是 {investor}。",p:"两家机构愿投两百万换三成，一家要季度增长对赌，一家只要求一年后再谈。",
+      o:[
+      {l:"签对赌那份，钱多、条款松紧无所谓",fx:{cash:800000,rep:6,risk:.65},end:"E_INVEST",le:"增长对赌是把经营风险转成个人无限责任。",tag:"risk"},
+      {l:"签宽松那份，估值低一点",fx:{cash:260000,rep:4,inv:2,risk:.1},br:2,le:"融资条款的排序是：先活命权，再控制权，最后才是估值。",tag:"risk"},
+      {l:"不融资，用会员费和供应商账期开一家",fx:{cash:-18000,rep:3,inv:1},br:1,le:"不稀释股权的增长必须接受更慢的速度和更高的现金约束。"},
+      {l:"找同行合伙，各出各的",fx:{cash:-60000,rep:1,risk:.5},end:"E_PARTNER",le:"合伙机制不清的成本会在关系破裂时一次性全额计提。",tag:"people"}]},
+    {c:3,t:"第二家店",s:"三家都在同一天的报价上。",p:"A：大学城，客量大但寒暑假各两个月；B：老城区，客量平但全年无休；C：就在你对面路口。",
+      o:[
+      {l:"C，就在对面，我熟",fx:{cash:-90000,rep:3,risk:.6},end:"E_BRANCH",le:"判断新店只看它是带来增量还是抢走存量。",tag:"cost"},
+      {l:"B，稳的，先不追高增长",fx:{cash:-80000,rep:5,inv:1},br:1,le:"在现金流没验证过第二家店的模型前，选波动最小的位置。"},
+      {l:"A，学生客单低但量大",fx:{cash:-100000,rep:4,risk:.3},br:1,le:"把两个月零收入的空档写进现金流表，再决定去不去。",tag:"cash"},
+      {l:"先不开了，把第一家做成样板",fx:{cash:10000,rep:4},le:"可复制性没建立之前，多开一家只是多一个不能关闭的错误。"}]},
+    {c:3,t:"要不要建中央厨房",s:"还有一条路是租给别人代工，每只包子付两毛。",p:"投资四十万，产能顶十家店。你现在三家，订单在涨。",
+      o:[
+      {l:"建。规模才有未来",fx:{cash:-180000,rep:6},cap:1,le:"未使用的产能每天都在产生真实亏损。要看你几家店来吃它。",tag:"cost"},
+      {l:"先代工，把店开到五家再说",fx:{cash:-24000,rep:2,inv:1},le:"把固定成本留成可变成本，是增长期最贵也最值的耐心。",tag:"cost"},
+      {l:"跟另一家早餐店合建，五五分",fx:{cash:-60000,rep:3,risk:.5},end:"E_SUPPLY",le:"共享产能就是共享依赖，任何一方的事故都会传导到你。",tag:"risk"},
+      {l:"一周内把厨房赶出来，验收走过场",fx:{cash:-52000,rep:-2,inv:2,risk:.5},end:"E_RUSH",le:"返工是唯一一项会被计算两次的成本。",tag:"cash"}]},
+    {c:3,t:"商标这件小事",s:"你也可以自己找代理，八百块，两个月。",p:"你叫「老包记」。朋友说顺手帮忙注册，写在他名下，以后转给你就行。",
+      o:[
+      {l:"让朋友办，省事",fx:{cash:0,risk:.6},end:"E_TRADEMARK",le:"登记主体就是资产归属本身。",tag:"risk"},
+      {l:"自己找代理，写公司名",fx:{cash:-1200,rep:2,inv:1},le:"把无形资产写进自己名下的成本极低，回报在你要扩张的那天显现。",tag:"risk"},
+      {l:"花十二万上「智慧餐饮系统」",fx:{cash:-120000,rep:4,risk:.5},end:"E_AI",le:"数字化只有在你的运营方法可复制时才有价值。",tag:"cost"},
+      {l:"不管，招牌有人认就行",fx:{cash:0,rep:1,risk:.4},le:"你做大之前的名字，属于最先注册的那个人。",tag:"risk"}]},
+    {c:3,t:"银行的额度",s:"你的账上现金只有六万。",p:"经营贷批了三十万，年化不低但够快。你正好想换辆车，也正好想开第三家店。",
+      o:[
+      {l:"提十万，换辆车，反正低成本",fx:{cash:-40000,rep:-4,risk:.6},end:"E_LOAN",le:"信贷额度是流动性储备，变成消费就同时失去了钱和缓冲。",tag:"cash"},
+      {l:"额度留着不动，只用六万周转",fx:{cash:0,rep:3,inv:1},le:"未使用的授信是一种买好的保险，动用之前先问它是不是应急。",tag:"cash"},
+      {l:"全提，三家店一起开",fx:{cash:200000,rep:8,risk:.55},end:"BK3",le:"用短期资金做长期投入，期限错配会替你决定结局。",tag:"cash"},
+      {l:"提三十万，投给最赚钱的那家",fx:{cash:60000,rep:5,risk:.3},br:1,le:"把钱投给已验证的单位，比投给想象中的规模更接近回报。剩下的六万是缓冲。",tag:"cash"}]},
+    {c:3,t:"学校食堂的大单",s:"合同一年一签，续约「视考核情况」。",p:"中标供三所学校早餐，一单顶三个月。但要求你专辟场地、专雇八个人。",
+      o:[
+      {l:"接，这是翻身仗",fx:{cash:120000,rep:7,risk:.6},end:"E_CONTRACT",le:"为单一客户定制的产能，不续约就是全额沉没成本。",tag:"risk"},
+      {l:"同时开直播卖速冻装，一场两万单",fx:{cash:56000,rep:5,risk:.5},end:"E_LIVESTREAM",le:"边际履约成本高的订单，规模越大越亏。",tag:"cost"},
+      {l:"要两年合同加提前解约赔偿",fx:{cash:60000,rep:2,risk:.4},end:"E_GENTRIFY",le:"合同期只保护你写在纸上的那一段。",tag:"risk"},
+      {l:"放弃，继续做街坊生意",fx:{cash:5000,rep:5},le:"放弃增长换取风险出清，不是保守，是把生存看得比规模重。",tag:"people"}]},
+    {c:3,t:"凌晨四点的自己",s:"店里的账上现金够撑四十天。",p:"你连续睡了两周不足五小时。帮工说：老板，要不歇一天。",
+      o:[
+      {l:"不歇。这行就是熬",fx:{cash:1500,rep:-6,risk:.45},end:"E_BURNOUT",le:"创始人的可持续性也是经营模型里的约束。",tag:"people"},
+      {l:"每天只做一个半时段，中午收摊",fx:{cash:-3000,rep:7,inv:1},le:"用一点营收换稳定与口碑，通常换回更多。",tag:"people"},
+      {l:"两个帮工改发现金，不缴社保，每人加五百",fx:{cash:4000,rep:-3,risk:.5},end:"E_LABOR",le:"省下用工合规，就是把自己变成承保人。",tag:"risk"},
+      {l:"门口贴张纸：早起的老人才可以免费领",fx:{cash:-7000,rep:12,risk:.5},end:"E_WARM",le:"没有筛选机制的善意就是无上限负债。",tag:"cash"}]},
+    {c:3,t:"报表做好看一点",s:"会计说：调一下应收的账期，报表就顺眼了。",p:"下个月要续贷。这个月的流水难看，但明年三月就能起来。",
+      o:[
+      {l:"调。一年之后就还上了",fx:{cash:30000,risk:.65},end:"E_MISREPORT",le:"报表造假同时抬高融资成本与存续风险。",tag:"risk"},
+      {l:"不调，用真报表去谈展期",fx:{cash:-5000,rep:4},le:"把坏消息提前说出来，是保留谈判筹码唯一的方式。",tag:"cash"},
+      {l:"先把能收的应收收回来再报",fx:{cash:16000,rep:1,risk:.35},end:"E_CREDIT",le:"用催收代替粉饰，代价是关系；代价通常更小。",tag:"cash"},
+      {l:"接受抽贷，主动缩到一家店",fx:{cash:-20000,rep:6},le:"在被迫之前主动缩小，是唯一还由你选的退出方式。",tag:"cash"}]},
+    {c:3,t:"什么都想做",s:"损耗率从百分之六涨到百分之十四。",p:"馄饨、豆浆、炒菜、夜宵、伴手礼。菜单厚得像本书。",
+      o:[
+      {l:"全上。客人要什么给什么",fx:{cash:6000,rep:3,risk:.5},end:"E_GREED2",le:"过宽的SKU同时抬高库存、损耗和管理成本。",tag:"cost"},
+      {l:"全砍：最便宜的馅、最少的人、零推广",fx:{cash:9000,rep:-14,risk:.55},end:"E_SLOW",le:"全面压缩成本会把成本优势变成质量劣势。",tag:"cost"},
+      {l:"夜宵单独做，交给别人管",fx:{cash:-16000,rep:-2,risk:.4},end:"E_BRANCH2",le:"不能亲眼看的管理半径，就是你的管理边界。",tag:"people"},
+      {l:"涨价，把麻烦的客人筛掉",fx:{cash:3000,rep:-5,risk:.3},le:"筛选客户的前提是你有余量，否则只是流失。",tag:"people"}]},
+    {c:3,t:"家里那笔钱",s:"你把存折放在桌上，想了很久。",p:"母亲住院要用十二万。新店刚开业，正缺十二万，三个月就能回本。",
+      o:[
+      {l:"先投店，三个月就还回来",fx:{cash:120000,rep:-8,risk:.6},end:"E_FAMILY",le:"不要给不可中断的个人义务做经营性再投资。",tag:"people"},
+      {l:"钱先出，店先缓一缓",fx:{cash:-120000,rep:5},le:"有些支出的优先级不由回报率决定，而由不可逆性决定。",tag:"people"},
+      {l:"店转让一部分，两边都不耽误",fx:{cash:-20000,rep:3,risk:.4},end:"E_PARTNER",le:"折中的代价常常是把两个风险都接了。",tag:"risk"},
+      {l:"卖车、借亲戚，保住两边",fx:{cash:-40000,rep:2},le:"用流动性换义务，只要不押上营运资金就是可接受的。",tag:"cash"}]}
+  ]
+};
+/*DATA-END*/
+
+/* ============ 像素引擎：原作画风（纯黑底 / 像素画 / 白描边框 / 黄色胶囊） ============ */
+const PIX=(function(){
+const pal={k:"#000000",w:"#ffffff",W:"#efe9dc",o:"#c98f4e",O:"#8a5a2b",y:"#ffd42a",Y:"#c9a01c",
+  r:"#d94a3d",R:"#8f2b22",b:"#3a6ea5",B:"#1d3a5c",g:"#5fa24e",G:"#2f6b2a",
+  s:"#f4cba2",S:"#c98f6a",m:"#a3a3a3",M:"#5c5c5c",p:"#f0a6c0",n:"#3a2a1a",c:"#3f3f46",
+  e:"#101014",f:"#7a4b1e",h:"#9be2e4",i:"#dff6fb",j:"#b58a5e",l:"#d8d2c2",t:"#2b2b31",
+  u:"#8f7f6a",v:"#c2b7a3",x:"#5a3b1e",z:"#e6e2d8",q:"#ff8b3d",d:"#121000",a:"#04333a",C:"#1c6b73"};
+const PIXFONT = {
+ "A":"01110,10001,10001,11111,10001,10001,10001",
+ "B":"11110,10001,10001,11110,10001,10001,11110",
+ "C":"01110,10001,10000,10000,10000,10001,01110",
+ "D":"11110,10001,10001,10001,10001,10001,11110",
+ "E":"11111,10000,10000,11110,10000,10000,11111",
+ "F":"11111,10000,10000,11110,10000,10000,10000",
+ "G":"01110,10001,10000,10011,10001,10001,01110",
+ "H":"10001,10001,10001,11111,10001,10001,10001",
+ "I":"11111,00100,00100,00100,00100,00100,11111",
+ "J":"00111,00010,00010,00010,00010,10010,01100",
+ "K":"10001,10010,10100,11000,10100,10010,10001",
+ "L":"10000,10000,10000,10000,10000,10000,11111",
+ "M":"10001,11011,10101,10101,10001,10001,10001",
+ "N":"10001,10001,11001,10101,10011,10001,10001",
+ "O":"01110,10001,10001,10001,10001,10001,01110",
+ "P":"11110,10001,10001,11110,10000,10000,10000",
+ "Q":"01110,10001,10001,10001,10101,10010,01101",
+ "R":"11110,10001,10001,11110,10100,10010,10001",
+ "S":"01111,10000,10000,01110,00001,00001,11110",
+ "T":"11111,00100,00100,00100,00100,00100,00100",
+ "U":"10001,10001,10001,10001,10001,10001,01110",
+ "V":"10001,10001,10001,10001,10001,01010,00100",
+ "W":"10001,10001,10001,10101,10101,11011,10001",
+ "X":"10001,10001,01010,00100,01010,10001,10001",
+ "Y":"10001,10001,01010,00100,00100,00100,00100",
+ "Z":"11111,00001,00010,00100,01000,10000,11111",
+ "0":"01110,10001,10001,10001,10001,10001,01110",
+ "1":"00100,01100,00100,00100,00100,00100,01110",
+ "2":"01110,10001,00001,00110,01000,10000,11111",
+ "3":"01110,10001,00001,00110,00001,10001,01110",
+ "4":"00010,00110,01010,10010,11111,00010,00010",
+ "5":"11111,10000,10000,11110,00001,10001,01110",
+ "6":"01110,10000,10000,11110,10001,10001,01110",
+ "7":"11111,00001,00010,00100,01000,01000,01000",
+ "8":"01110,10001,10001,01110,10001,10001,01110",
+ "9":"01110,10001,10001,01111,00001,00001,01110",
+ "!":"00100,00100,00100,00100,00100,00000,00100",
+ "?":"01110,10001,00001,00110,00100,00000,00100",
+ ".":"00000,00000,00000,00000,00000,00000,00100",
+ ",":"00000,00000,00000,00000,00000,00100,01000",
+ ":":"00000,00100,00000,00000,00000,00100,00000",
+ "-":"00000,00000,00000,11111,00000,00000,00000",
+ "'":"00100,00100,00000,00000,00000,00000,00000",
+ "/":"00001,00010,00100,00100,01000,01000,10000",
+ "(":"00010,00100,01000,01000,01000,00100,00010",
+ ")":"01000,00100,00010,00010,00010,00100,01000",
+ "+":"00000,00100,00100,11111,00100,00100,00000",
+ "*":"00100,10101,01110,11111,01110,10101,00100",
+ "#":"01010,01010,11111,01010,11111,01010,01010",
+ "&":"01100,10010,10100,01100,10101,10010,01101",
+ "@":"01110,10001,10011,10101,10110,10000,01110",
+ " ":"00000,00000,00000,00000,00000,00000,00000"
+};
+
+const SP={"boy":["....nnnn....","...nnnnnn...","...nssssn...","...nssssn...","...nnsnns...","....ssss....","..yyyyyyyy..",".yyyyyyyyyy.",".ssyyyyyyss.","..yyyyyyyy..","...bbbbbb...","...bb..bb...","...bb..bb...","..MMM..MMM.."],"girl":["....nnnn....","...nnnnnn...","..nnssssnn..","..nssssssn..","..nnssssnn..","...ssss.....","..ppppppp...",".ppppppppp..",".ssppppppss.","..pppppppp..","...ss..ss...","...ss..ss...","..MMM..MMM.."],"fat":["....nnnn....","...nnnnnn...","...nssssn...","..ssssssss..","..ssnssns...","...ssss.....",".WWWWWWWWW..","WWWWWWWWWWW.","WWsWWWWWsWW.","WWWWWWWWWWW.",".WWWWWWWWW..","...bbb......","..MMM.MM...."],"shop":["............","..kkkkkkkk..",".kkRRRRRRkk.",".kRRRRRRRRk.","WWWWWWWWWWWW","WWoWWoWWoWWW","wwwwwkkwwwww","w..ww..ww..w","w..ww..ww..w","OOOOOOOOOOOO","w..........w","w..........w"],"steamer":["............","...oooooo...","..oWWWWWWo..",".oWWWWWWWWo.",".WWWWWWWWWW.",".oWWWWWWWWo.","..oooooooo..","..oWWWWWWo..",".oWWWWWWWWo.",".WWWWWWWWWW.","OOOOOOOOOOOO",".OOOOOOOOOO."],"bao":["............","....WWWW....","...WWWWWW...","..WWWWWWWW..","..WWWWWWWW..","..WWWWWWWW..",".WWWWWWWWWW.",".WWWWWWWWWW.","..WWWWWWWW..","...vvvvvv...","............","............"],"money":["....vvvv....","...vWWWWv...","..vWWWWWWv..","..vWyyyyWv..",".vWWyWWyWWv.",".vWWyyyyWWv.",".vWWyWWyWWv.",".vWWWWWWWWv.","..vWWWWWWv..","...vvvvvv...","............","............"],"bag":[".....vv.....","....v..v....","...WWWWWW...","..WWWWWWWW..",".WWWWrrWWWW.",".WWWWrrWWWW.","WWWWWrrWWWWW","WWWWWWWWWWWW","WWWWWWWWWWWW",".WWWWWWWWWW.","..WWWWWWWW..","............"],"bars":["MM..MM..MM..","MM..MM..MM..","MM..MM..MM..","MM..MM..MM..","MM..MM..MM..","MM..MM..MM..","MM..MM..MM..","MM..MM..MM..","MMMMMMMMMMMM","............","............","............"],"goro":["..MMMMMM....",".MMMMMMMMM..",".MMrrMMrrM..",".MMMMMMMMM..","..MRRRRRM...","..MMMMMMM...",".MMMMMMMMMM.","MMsMMMMMsMMM","MMMMMMMMMMMM","MMMMMMMMMMMM",".MMM....MMM.","..MM....MM.."],"coffin":["...kkkk.....","..kWWWWk....",".kWWkkWWk...",".kWWkkWWk...",".kWWWWWWk...",".kWWkkWWk...",".kWWWWWWk...",".kWWWWWWk...","..kWWWWk....","..kWWWWk....","...kkkk.....","............"],"skel":["...ssss.....","..ssssss....","..skssks....","...ssss.....","....ss......",".s.ssss.s...","...ssss.....","...ssss.....","..ss.ss.ss..","...ssss.....","...s..s.....","..MM..MM...."],"skull":["..ssssss....",".ssssssss...",".skskssks...",".ssssssss...","...sSSs.....","..s.ssss....",".ssssssss...","............","............","............","............","............"],"cop":["...mmmmmm...","...mBBBBm...","...myyym....","...ssss.....","...skks.....","..BBBBBB....",".ByBBBBBys..",".sBBBBBBBs..","..BBBBBB....","...BB.BB....","...BB.BB....","..tt...tt..."],"cone":[".....rr.....","....rrrr....","....rWWr....","...rrrrrr...","...rWWWWr...","..rrrrrrrr..","..rWWWWWWr..",".rrrrrrrrrr.","............","............","............","............"],"phone":["...mmmmmm...","..mwwwwwm...","..mwBBBBwm..","..mwBiiBwm..","..mwBiiBwm..","..mwBBBBwm..","..mwWWWWwm..","..mwWWWWwm..","..mwWWWWwm..","..mwwwwwwm..","...mmmmmm...","............"],"scale":[".....mm.....","..mmmmmmmm..",".....mm.....",".....mm.....",".mmmmmmmmmm.",".m...mm...m.","mm...mm...mm","mM..mmM..Mm.","MMM.mm.MMM..",".....mm.....",".....mm.....","...MMMMM...."],"gavel":["..OOOOOO....","..OoooooO...","..OoooooO...","..OOOOOO....",".....OO.....",".....OO.....","....OO......","...OO.......","..MMMMMMM...","..M....M....","..M....M....","............"],"car":["....bbbb....","...bbbbbb...","..bBbbbbBb..","rrrrrrrrrrrr","rrrrrrrrrrrr","rrrRRRRRrrrr","rkkrrrrrrkkr","rkkrrrrrrkkr","..k......k..","............","............","............"],"hosp":["...MMMMMM...","..MMMMMMMM..",".MMwMMwMMwMM",".MMMMMMMMMMM",".MMwMMwMMwMM",".MMMwMMwMMMM",".MMwMMMMwMMM",".MMMMMMMMMMM",".MMwMMMMwMMM",".MMMMMMMMMMM","..oooooooo..","............"],"trophy":["...yyyyyy...","..yWWWWWWy..","yyWWWWWWWWyy",".yWWWWWWWWy.","..yWWWWWWy..","...yyyyyy...",".....yy.....",".....yy.....","...YYYYY....","..YYYYYYY...","............","............"],"map":[".WWWWWWWWWW.","WWiWWWWWWiiW","WWWWmmWWWWWW","WWWWmmWWWWWW","WmmmmmmWWWWW","WmmmWWWWWWWW","WWWWWWWWrrr.","WWWWWWWWrRr.","WWWWWWWWrrr.","WWWWWWWW.W..","............","............"],"hand":["....ss......","...ssss.....","..ssssss....",".ssssssss...",".ssssssss...",".ssssssss...","..ssssss....","..ssssss....","..ssssss....","..ssssss....","...ssss.....","..SSSSSS...."],"sign":["...OOOOOO...","...O....O...","...O.rr.O...","...O....O...","OOOOOOOOOOOO","OOrrrrrrrrOO","OOrrrrrrrrOO","OOOOOOOOOOOO","...OOOOOO...",".....OO.....",".....OO.....","...MMMMM...."],"crown":["............",".y..y..y..y.",".yy.y..y.yy.",".yyyyyyyyyy.",".yYYYYYYYYy.",".yyyyyyyyyy.","............","............","............","............","............","............"],"star":[".....yy.....",".....yy.....","...yyyyyy...",".yyyyyyyyyy.","..yyyyyyyy..","...yyyyyy...","..yyyy..yy..",".yy......yy.","............","............","............","............"],"moon":["...zzzz.....","..zzzzzz....",".zzz....z...",".zz..l....z.","zz.........z","zz.........z","zz........z.",".zz......z..",".zzz....zz..","..zzzzzzz...","...zzzzz....","............"],"sun":["..y..yy..y..","...y.yy.y...","..yyyyyyyy..",".yyyyyyyyyy.","yyyyYYYYyyyy","yyyyYYYYyyyy",".yyyyyyyyyy.","..yyyyyyyy..","...y.yy.y...","..y..yy..y..","............","............"],"fire":[".....rr.....","....rrrr....","...ryyry....","..ryyyyry...","..ryyYYyy...",".ryYYYYYYr..",".ryYYYYYYr..","rryYYYYYYrr.","rrYYooooYYrr",".rroooooorr.","..rrrrrrrr..","............"],"eye":["............","..ssssssss..",".ssssssssss.","ssbbWWbbWWss","ssbkWbbkWsss",".ssssssssss.","..ssssssss..","............","............","............","............","............"],"key":["...mmmm.....","..mMMMMm....","..mM..Mm....","..mMMMMm....","...mmmm.....","....MM......","....MM......","....MMmm....","....MM......","....MMmm....","...MMMM.....","............"],"wheel":["...mmmmmm...","..mMM..MMm..",".mMM.mm.MMm.",".mM.mmMM.mM.","mm.mmMMm.mmm","mmMM.mmMMmmm","mm.mmMMm.mmm",".mM.mmMM.mM.",".mMM.mm.MMm.","..mMM..MMm..","...mmmmmm...","............"],"cup":["............",".WWWWWWWWWW.",".WbbbbbbbbW.","..WbbbbbbW..","...WbbbbW...","....WbbW....",".....bb.....","...MMMMM....","............","............","............","............"],"coin":["...yyyyyy...","..yYYYYYYy..",".yYYyyyyYYy.",".yYyYYYYyYy.","yYYyYYYYyYYy","yYYyYYYYyYYy",".yYyYYYYyYy.",".yYYyyyyYYy.","..yYYYYYYy..","...yyyyyy...","............","............"],"sword":[".....ww.....",".....wm.....",".....wm.....",".....wm.....",".....wm.....","..OOOOOOOO..",".....OO.....",".....OO.....",".....yy.....",".....OO.....","............","............"],"hourglass":["..MMMMMMMM..","...WiiWii...","....WiiW....",".....WW.....",".....ss.....","....ssss....","...ssssss...","..ssssssss..","..MMMMMMMM..","............","............","............"],"anchor":[".....mm.....","....mMMm....","....m..m....",".mmmmmmmmmm.",".....mm.....",".....mm.....",".m...mm...m.",".mm..mm..mm.","..mm.mm.mm..","...mmmmmm...","....MMMM....","............"],"mask":["..ssssssss..",".ssssssssss.",".skskssks.s.",".ssssssssss.",".ssSSSSSSs..","..ssssssss..","..s.s..s.s..","..s.s..s.s..","............","............","............","............"],"scythe":["..OOOOOO....",".OOOOOOOO...",".OO.....O...","..OO....O...",".....OO.....","....OO......","...OO.......","..OO........","..O.........",".OO.........","OO..........","............"],"knot":["............","..oo..oo....",".oOOo.oOOo..",".oOOo.oOOo..","..oo..oo....","...oooo.....","..o....o....","..o....o....","...oooo.....","............","............","............"],"serpent":[".....gg.....","....gggg....","...gggggg...","...gg..g....","....gggg....",".....gggg...",".......ggg..","......gggg..","....gggg....","...gg.......","..gggggg....",".gggggggg..."],"lantern":["....mmmm....","...m....m...","...mrrrrm...","..mrryyrrm..","..mrryyrrm..","..mrryyrrm..","..mrrrrrrm..","...mrrrrm...","....mmmm....",".....mm.....",".....mm.....","............"],"arrow":["............","..........y.",".........yy.","........yy..",".......yy...","......yy....",".....yy.....","....yy......","...yy.......","..yy........",".yy.........","yy.........."],"pie":["...mmmmmm...","..mWWWWWWm..",".mWWWWWWWWm.","mWWmmWWmmWWm","mWWWWWWWWWWm","mWWmmWWWWWWm",".mWWWWWWWWm.","..mWWWWWWm..","...mmmmmm...","............","............","............"],"table":["WWWWWWWWWWWW","OOOOOOOOOOOO",".O........O.",".O........O.",".O........O.",".O........O.","............","............","............","............","............","............"],"bank":["..MMMMMMMM..",".MWWWWWWWWWM","MMMMMMMMMMMM","..M.M..M.M..","..M.M..M.M..","..M.M..M.M..","..M.M..M.M..","MMMMMMMMMMMM","..MMMMMM....","............","............","............"],"ice":[".....ii.....","...ii.ii....","..i.ii.i....","iiiiiiiiiiii","..i.ii.i....","...ii.ii....",".....ii.....","....i..i....","...i..i.....","............","............","............"],"leaf":["........GG..","......GGGG..","....GGGGGG..","..GGGGGGG...",".GGGGGG.....",".GGGG.......","..GGG.......","...GG.......","....GG......",".....GG.....","......GG....","............"],"chair":["............","..MMMMMMMM..","....M..M....","....M..M....","..MMMMMMMM..","....M..M....","....M..M....","....M..M....","..MMMMMMMM..","....M..M....","...MM..MM...","............"],"book":["............",".kkkkkkkkkk.",".kWWWWWWWWk.",".kWnWWWWnWk.",".kWWWWWWWWk.",".kWWWnnWWWk.",".kWWWWWWWWk.",".kWWnnnnWWk.",".kWWWWWWWWk.",".kkkkkkkkkk.","..k....k....","............"],"bed":["............",".....kkk....",".....k..k...",".kkkkkkkkkkk",".k..........",".kSSssssSSk.",".kSssssssSk.",".kssssssssk.",".kkkkkkkkkkk","..k......k..","..k......k..","............"],"factory":["............","..mm....mm..","..mm....mm..","..mmmm..mm..","..mmmmmmmm..",".mmmmmmmmmm.",".mccmmmmccm.",".mccmmmmccm.",".mmmmmmmmmm.",".MMMMMMMMMM.","............","............"],"scooter":["............","....kkkk....","....k..kk...","..kkkk..kk..",".kkkkkkkkk..","..bbbbbbbb..","..bBBBBBBb..","...kk..kk...","..kMMMkMMk..","..kMMMMMMk..","...kk..kk...","............"],"scroll":["............",".OOOOOOOOOO.",".OWWWWWWWWo.",".OWnWWnWWWo.",".OWWWWWWWWo.",".OWWnWWnWWo.",".OWWWWWWWWo.",".OWWWWWWWWo.",".OWWnWWWWWo.",".OOOOOOOOOO.","............","............"],"crowd":["............","...n...n...n",".nnn..nnn.nn",".ssss.ssss.s",".ssss.ssss.s",".ssss.ssss.s","yyyyy.yyyy.y","bbbbbbbbbbbb","bbbbbbbbbbbb","bBBb.bBBb.bB","bBBb.bBBb.bB","............"],"box":["............","..OOOOOOOO..",".OwwwRRwwwO.",".OOOOOOOOOO.",".OwwwRRwwwO.",".OwwwRRwwwO.",".OwwwRRwwwO.",".OwwwRRwwwO.",".OOOOOOOOOO.","............","............","............"],"clock":["...MMMMMM...","..MwwwwwwM..",".MwwwwwwwwM.",".MwwMMwwwwwM",".MwwMMwwwwwM",".MwwMMMMMMM.",".MwwwwwwwwwM",".MwwwwwwwwwM","..MwwwwwwM..","...MMMMMM...","............","............"],"rain":[".....bb.....","...bbbbbb...","..bbbbbbbb..",".bbbbbbbbbb.",".bbbbbbbbbb.","..bbbbbbbb..","...w..w..w..","..w...w..w..",".w...w...w..","............","............","............"],"doctor":["....nnnn....","...nnnnnn...","...nssssn...","...nseesn...","....ssss....","..WWWWWWWW..",".WWsWWWWsWW.",".WWWWWWWWWW.","..WWWWWWWW..","...WW..WW...","...WW..WW...","..kkk..kkk.."],"bell":[".....yy.....","....yyyy....","...yYYYYy...","..yYYYYYYy..",".yYYYYYYYYy.",".yYYYYYYYYy.","yyyyyyyyyyyy",".yyyyyyyyyy.","............",".....yy.....",".....yy.....","............"],"sheet":["............",".kkkkkkkkkk.",".kssssssssk.",".kssWWWWssk.",".kssWWWWssk.",".kssssssssk.",".kkkkkkkkkk.","............","............","............","............","............"],"boba":["............",".WWWWWWWWWW.",".WrrRRRRrrW.",".WRRRRRRRRW.",".WRRRRRRRRW.",".WRRRRRRRRW.","..WRRRRRRW..","...WRRRW....","....WW......","....rr......","............","............"],"pot":["............",".....o..o...","...oooooo...","..oWWWWWWo..",".oooooooooo.",".oWWWWWWWWo.",".oWMMMMMMWo.",".oWWWWWWWWo.",".oWWWWWWWWo.","..oooooooo..","...o....o...","............"],"wreck":["............","...MM..MM...","..MMMMMMMM..",".MMttMMttMM.",".MMMMMMMMMM.","..kkkkkkkk..",".kkMMMMMMkk.",".kkMMMMMMkk.","..kk....kk..","............","............","............"],"noose":["..............",".......k......",".......k......",".......k......","....kkkkkkk...",".kkk.....kkk..",".k..kkkkk..k..",".k.k.....k.k..",".k.k.kkk.k.k..",".k.k.....k.k..",".k..kkkkk..k..",".kkk.....kkk.."],"card2":["............","............","............","..kkkkkkkkk.","..kyyyyyyk..","..kywwwwyk..","..kwwwwwwk..","..kwwwwWWk..","..kWWWWWWk..","..kWWWWWyk..","..kkkkkkkk..","............"],"tower":["............",".....MM.....",".....MM.....","....MMMM....","...MM..MM...","...MM..MM...","..MM....MM..",".MMMMMMMMMM.",".MMwwwwwwMM.",".MMwwwwwwMM.",".MMMMMMMMMM.","..MMMMMMMM.."],"chart":["............","..kkkkkkkkk.","..kzhhhhzhk.","..khhkhhkhk.","..khkhhkkhk.","..khhhhhhhk.","..khhqhhqhk.","..kkkkkkkkk.",".....kk.....",".....kk.....","...kkkkkkk..","............"],"heart":["............","..rr....rr..",".rRRr..rRRr.","rRRRRrRRRRRr","rRRRRRRRRRRr","rRRRRRRRRRRr",".rRRRRRRRRr.","..rRRRRRRr..","...rRRRRr...","....rRRr....",".....rr.....","............"]};
+
+/* ================= 像素渲染底座 ================= */
+const cache={};
+function col(c){return pal[c]!=null?pal[c]:(/^#[0-9a-f]{3,8}$/i.test(String(c))?c:pal.w)}
+function nameOf(k){return String(k).replace(/\*\d+$/,"")}
+function raster(name,re){
+  const key=name+"|"+(re?JSON.stringify(re):"");
+  if(cache[key])return cache[key];
+  const rows=SP[name];if(!rows)return null;
+  const cv=document.createElement("canvas");cv.width=rows[0].length;cv.height=rows.length;
+  const g=cv.getContext("2d");
+  for(let y=0;y<rows.length;y++)for(let x=0;x<rows[y].length;x++){
+    const ch=rows[y][x];if(ch===".")continue;
+    g.fillStyle=col(re&&re[ch]!=null?re[ch]:ch);g.fillRect(x,y,1,1);
+  }
+  cache[key]=cv;return cv;
+}
+function gapOf(u,ls){return Math.max(1,Math.round(u*(ls==null?.34:ls)));}
+function textW(s,ps,ls){s=String(s).toUpperCase();const sp=gapOf(ps,ls);
+  return s.length?(s.length*(5*ps+sp)-sp):0;}
+function fitPs(s,W,min){for(let ps=5;ps>=(min||1);ps--)if(textW(s,ps)<=W)return ps;return min||1;}
+function glyph(g,s,x,y,u,c,ls){
+  s=String(s).toUpperCase();const gp=gapOf(u,ls);const w=Math.max(1,Math.round(u));
+  let cx=x;
+  for(const ch of s){const raw=PIXFONT[ch]||PIXFONT[" "];const gl=raw.split(",");g.fillStyle=col(c);
+    for(let r=0;r<7;r++){const row=gl[r];for(let i=0;i<5;i++)if(row[i]==="1")
+      g.fillRect(cx+Math.round(i*u),y+Math.round(r*u),w,w);}
+    cx+=Math.round(5*u)+gp;}
+}
+function dither(g,x,y,w,h,c){g.fillStyle=col(c);
+  for(let j=0;j<h;j++)for(let i=0;i<w;i++)if((i+j)%2===0)g.fillRect(x+i,y+j,1,1);}
+function stars(g,LW,LH,c,n,seed){
+  let s=seed||9;const rnd=()=>((s=(s*16807)%2147483647)/2147483647);g.fillStyle=col(c);
+  for(let i=0;i<n;i++)g.fillRect(1+Math.floor(rnd()*(LW-3)),1+Math.floor(rnd()*Math.max(4,Math.floor(LH*.42))),1,1);
+}
+/* ops: [op,...] 逻辑坐标，最后按 W 整数放大 */
+function render(LW,LH,bg,ops,W){
+  const sc=Math.max(1,Math.floor(((W||LW*5)/LW)+.49));
+  const cv=document.createElement("canvas");cv.width=LW*sc;cv.height=LH*sc;
+  const g=cv.getContext("2d");g.imageSmoothingEnabled=false;
+  g.fillStyle=col(bg||"k");g.fillRect(0,0,LW*sc,LH*sc);
+  const P=v=>Math.round(v*sc);
+  for(const op of ops){
+    const d=op[0];
+    if(d==="fill"){g.fillStyle=col(op[5]);g.fillRect(P(op[1]),P(op[2]),P(op[3]),P(op[4]));}
+    else if(d==="line"){g.fillStyle=col(op[5]);g.fillRect(P(op[1]),P(op[2]),P(op[3]),P(op[4]||1));}
+    else if(d==="frame"){const t=P(op[6]||1),x=P(op[1]),y=P(op[2]),w=P(op[3]),h=P(op[4]);
+      g.fillStyle=col(op[5]);
+      g.fillRect(x,y,w,t);g.fillRect(x,y+h-t,w,t);g.fillRect(x,y,t,h);g.fillRect(x+w-t,y,t,h);}
+    else if(d==="dither"){dither(g,P(op[1]),P(op[2]),P(op[3]),P(op[4]),op[5]);}
+    else if(d==="star"){stars(g,LW,LH,op[1],op[2],op[3]);}
+    else if(d==="spr"){
+      const r=raster(nameOf(op[4]),op[5]);if(!r)continue;const rows=SP[nameOf(op[4])];
+      g.drawImage(r,0,0,rows[0].length,rows.length,P(op[1]),P(op[2]),P(op[3]*rows[0].length),P(op[3]*rows.length));
+    }
+    else if(d==="txt"){
+      const ps=P(op[3]),x=P(op[1]),y=P(op[2]);
+      if(op[7]==="box"){const tw=textW(op[4],op[3],op[6])*sc,pad=Math.max(1,Math.round(sc*1.5));
+        g.fillStyle=col(op[8]||"y");g.fillRect(x-pad,y-pad,Math.round(tw)+pad*2,Math.round(7*op[3]*sc/5*Math.round(sc*5/5)/sc*sc/sc*1)+ps+pad*2);
+        glyph(g,op[4],x,y,sc,"k",op[6]);continue;}
+      glyph(g,op[4],x,y,sc,op[5],op[6]);
+    }
+  }
+  return cv;
+}
+
+/* ================= 图版排布 ================= */
+function place(list,x,y,w,h,base,vj){
+  const items=[],ops=[];
+  list.forEach(raw=>{
+    if(raw===" "){items.push({gap:Math.round(w*.1)});return;}
+    const p=typeof raw==="string"?[raw]:raw;
+    const name=nameOf(p[0]),rows=SP[name];
+    if(!rows){items.push({gap:2});return;}
+    let s=p[1]==null?(base||2):p[1];
+    while(s>1&&Math.max(rows[0].length*s,rows.length*s)>Math.min(w-2,h-2))s--;
+    items.push({name:name,rows:rows,s:s,re:p[2]||null});
+  });
+  const room=()=>{let b=0,m=0;items.forEach(it=>{if(it.gap){b+=it.gap;return;}
+    b+=it.rows[0].length*it.s+Math.round(it.s*1.5);m=Math.max(m,it.rows.length*it.s);});return{b:b,m:m};};
+  let guard=0;
+  while(guard++<40){const r=room();
+    if(r.b<=w-1&&r.m<=h-1)break;
+    let big=null;items.forEach(it=>{if(!it.gap&&it.s>1&&(!big||it.s>big.s))big=it;});
+    if(!big)break;
+    items.forEach(it=>{if(!it.gap&&it.s===big.s)it.s--;});
+  }
+  let bw=0,bh=0;
+  items.forEach(it=>{if(it.gap){bw+=it.gap;return;}bw+=it.rows[0].length*it.s+Math.round(it.s*1.5);bh=Math.max(bh,it.rows.length*it.s);});
+  let cx=x+Math.max(1,Math.round((w-bw)/2));
+  const ty=(vj==="b")?y+Math.max(0,h-1-bh):y+Math.max(1,Math.round((h-bh)/2));
+  items.forEach(it=>{
+    if(it.gap){cx+=it.gap;return;}
+    const ih=it.rows.length*it.s;
+    ops.push(["spr",cx,ty+Math.round((bh-ih)/2),it.s,it.name,it.re||undefined]);
+    cx+=it.rows[0].length*it.s+Math.round(it.s*1.5);
+  });
+  return ops;
+}
+
+/* ================= 场景插画 62x40 ================= */
+const SW=62,SH=40;
+function illOps(list,opt){
+  opt=opt||{};
+  const ops=[["fill",0,0,SW,SH,opt.bg||"k"]];
+  if(opt.band){ops.push(["fill",1,1,SW-2,Math.round((SH-2)*(opt.bandH||.38)),opt.band]);}
+  if(opt.grnd){ops.push(["fill",1,SH-1-Math.round((SH-2)*(opt.grndH||.24)),SW-2,Math.round((SH-2)*(opt.grndH||.24)),opt.grnd]);}
+  if(opt.stars)ops.push(["star",opt.starsC||"w",opt.stars,opt.seed||9]);
+  if(opt.dither)ops.push(["dither",1,SH-1-Math.round((SH-2)*(opt.grndH||.24)),SW-2,Math.round((SH-2)*(opt.grndH||.24)),opt.dither]);
+  const lb=opt.label?textW(opt.label,1):0;
+  const top=opt.label?12:1;
+  if(opt.label){ops.push(["fill",2,2,lb+4,9,"y"]);ops.push(["txt",4,3,1,opt.label,"k"]);}
+  place(list||[],1,top,SW-2,SH-top-1,opt.base||3,(opt.grnd||opt.band)?"b":"c").forEach(o=>ops.push(o));
+  ops.push(["frame",0,0,SW,SH,opt.frame||"w",1]);
+  return ops;
+}
+function illCanvas(list,opt,W){return render(SW,SH,(opt&&opt.bg)||"k",illOps(list,opt),W);}
+
+/* ================= 场景菜谱 ================= */
+/* 每个场景一幅像素插画：部件 = 精灵名，可选 [名, 缩放, 换色]，" " 表示留空 */
+const NIGHT={bg:"#05070d",stars:16,starsC:"w",seed:5,grnd:"#12161f"};
+const SCENE_ART={
+ "盘下一间铺面":[[["boy",2],["key",2],["shop",2]],{grnd:"#1d1d1d",grndH:.22}],
+ "第一批家伙什":[[["bars",2],["steamer",2],["pot",2]],{band:"#101822",bandH:.4,grnd:"#1a1a1a",grndH:.16}],
+ "招牌和灯":[[["sign",2],["shop",2],["lantern",2]],{grnd:"#1d1d1d",grndH:.18}],
+ "人手":[[["fat",2],["boy",2],["steamer",2]],{grnd:"#1d1d1d",grndH:.2}],
+ "开业第一天":[[["bao",2],["steamer",2],["scale",2],["coin",2]],{grnd:"#20190d",grndH:.18}],
+ "面粉又涨了":[[["bag",2],["arrow",2],["bag",2],["coin",2]],{grnd:"#20190d",grndH:.2}],
+ "外卖平台来敲门":[[["phone",2],["scooter",2],["box",2]],{band:"#0b1220",bandH:.42,grnd:"#141414",grndH:.14}],
+ "探店视频爆了":[[["eye",2],["crowd",2],["phone",2]],{band:"#141024",bandH:.42}],
+ "会员卡":[[["card2",2],["coin",2],["cup",2]],{grnd:"#1d1d1d",grndH:.18}],
+ "卫生检查":[[["doctor",2],["gavel",2],["sign",2]],{grnd:"#1d1d1d",grndH:.2}],
+ "老朋友的单子":[[["knot",2],["hand",2],["scroll",2]],{band:"#131a13",bandH:.4}],
+ "月底对账":[[["scale",2],["money",2],["coin",2]],{grnd:"#1d1d1d",grndH:.18}],
+ "隔壁开了家新的":[[["shop",2],["arrow",2],["shop",2]],{grnd:"#1d1d1d",grndH:.2}],
+ "投资人上门":[[["hand",2],["scale",2],["coin",2]],{band:"#191219",bandH:.42}],
+ "第二家店":[[["shop",2],["map",2],["shop",2]],{grnd:"#1d1d1d",grndH:.18}],
+ "要不要建中央厨房":[[["factory",2],["steamer",2],["box",2]],{grnd:"#1a1a1a",grndH:.2}],
+ "商标这件小事":[[["scroll",2],["crown",2],["key",2]],{grnd:"#1d1d1d",grndH:.18}],
+ "银行的额度":[[["bank",2],["coin",2],["chart",2]],{band:"#0d1622",bandH:.4}],
+ "学校食堂的大单":[[["scroll",2],["box",2],["pie",2],["table",2]],{grnd:"#1d1d1d",grndH:.18}],
+ "凌晨四点的自己":[[["boy",2],["hourglass",2],["moon",2]],{bg:"#05070d",stars:18,grnd:"#12161f",grndH:.22,seed:5}],
+ "报表做好看一点":[[["mask",2],["scroll",2],["chart",2]],{band:"#150f14",bandH:.4}],
+ "什么都想做":[[["bao",2],["pot",2],["cup",2],["pie",2]],{grnd:"#1d1d1d",grndH:.18}],
+ "家里那笔钱":[[["hosp",2],["boy",2],["coin",2]],{grnd:"#1d1d1d",grndH:.2}],
+ "@invest":[[["bars",2],["coin",2],["arrow",2],["shop",2]],{band:"#101a16",bandH:.4,grnd:"#1a1a1a",grndH:.14}],
+ "@npc":[[["crown",2],["shop",2],["sign",2]],{grnd:"#1d1d1d",grndH:.2}],
+ "@revive":[[["hand",2],["money",2],["key",2]],{grnd:"#1d1d1d",grndH:.18}]
+};
+
+const ARC_ART={cup:["card2","cup"],coin:["coin","money"],sword:["sword","knot"],wand:["chair","pot"],
+  tower:["tower","arrow"],wheel:["wheel","map"],sun:["sun","bao"],moon:["moon","boy"],star:["star","trophy"],
+  hourglass:["hourglass","boy"],scale:["scale","money"],mask:["mask","fat"],serpent:["serpent","bag"],
+  key:["key","scroll"],lantern:["lantern","rain"],scythe:["scythe","leaf"],anchor:["anchor","bank"],
+  crown:["crown","trophy"],steamer:["steamer","bao"],dice:["goro","coin"],eye:["eye","phone"],knot:["knot","hand"]};
+
+/* ================= 结局菜谱 ================= */
+const END_ART={
+ FIN_IPO:["bell","trophy","coin"],FIN_CHAIN:["map","shop","shop"],FIN_LEGACY:["shop","steamer","bao"],
+ FIN_OK:["sun","table","bao"],FIN_SURVIVE:["hourglass","steamer"],FIN_QUIT:["key","steamer"],
+ FIN_CLOSE:["tower","leaf"],
+ BK1:["coffin","bag","bag"],BK2:["goro","money","hourglass"],BK3:["coin","serpent","anchor"],
+ BK4:["skel","hourglass","noose"],
+ E_RENT:["shop","key","bag"],E_CENTER:["shop","coin","tower"],E_BACKSTREET:["lantern","rain"],
+ E_DECOR:["shop","sign","crown"],E_STEAMER:["steamer","wreck"],E_FLOUR:["bag","arrow","coin"],
+ E_PRICEUP:["bao","scale","arrow"],E_RELATIVE:["boy","fat","money"],E_HIRE:["fat","key","shop"],
+ E_FRANCHISE:["box","sign","coin"],E_HEALTH:["gavel","sign","shop"],E_LEASE:["knot","shop"],
+ E_SIGN:["sign","wreck"],
+ E_DELIVERY:["scooter","phone","coin"],E_INFLUENCER:["eye","crowd","moon"],
+ E_CARD:["card2","coin","cup"],E_DISCOUNT:["sign","arrow","goro"],E_INSPECT:["doctor","gavel"],
+ E_RATS:["mask","coffin"],E_CREDIT:["knot","hourglass"],E_CASHFLOW:["scale","box","money"],
+ E_OVERTIME:["girl","moon","hourglass"],E_MASTER:["key","box"],E_PEST:["coffin","serpent"],
+ E_LABOR:["anchor","gavel","boy"],E_LEND:["hand","cup","coin"],E_ADVERT:["lantern","eye","coin"],
+ E_INVEST:["hand","scale","dice"],E_BRANCH:["shop","arrow","shop"],E_BRANCH2:["chair","clock","map"],
+ E_FACTORY:["factory","bars","skel"],E_TRADEMARK:["crown","scroll","key"],E_LOAN:["bank","car","coin"],
+ E_CONTRACT:["scroll","clock","box"],E_PARTNER:["sword","sword","fat"],E_SUPPLY:["bag","serpent"],
+ E_GENTRIFY:["tower","sign","rain"],E_AI:["phone","eye","chart"],E_LIVESTREAM:["phone","box","wheel"],
+ E_RUSH:["wheel","wreck","hourglass"],E_PRICEWAR:["sword","coin","goro"],E_FAMILY:["heart","hosp","coin"],
+ E_GREED2:["bao","pie","pot","cup"],E_BURNOUT:["boy","hourglass","bed"],E_MISREPORT:["mask","scroll","gavel"],
+ E_SLOW:["scale","pot","arrow"],E_WARM:["steamer","crowd","bao"],
+ BZ_TEA:["cup","cup","shop"],BZ_REST:["pot","wand","skel"],BZ_FRANCH:["box","sign","eye"],
+ BZ_SUPPLY:["bag","serpent","coin"],BZ_FUND:["coin","arrow","map"],BZ_OVER:["tower","bars","wheel"],
+ BZ_LONE:["anchor","shop","rain"],BZ_PORT:["wheel","cup","pot","coin"],
+ BZ_FIRST:["lantern","crown","shop"],BZ_NAME:["trophy","crown","sign"]
+};
+const END_OPT={
+ BK1:{bg:"#08080c",frame:"#5c5c5c"},BK2:{frame:"#d94a3d"},BK3:{frame:"#c9a01c"},BK4:{frame:"#5c5c5c"},
+ E_CENTER:{band:"#101822",bandH:.45},E_AI:{band:"#0d1622",bandH:.45},E_LIVESTREAM:{band:"#141024",bandH:.45},
+ E_INFLUENCER:{band:"#141024",bandH:.45},E_BURNOUT:NIGHT,E_OVERTIME:NIGHT,E_BACKSTREET:NIGHT,
+ E_RATS:NIGHT,E_LABOR:{band:"#111",bandH:.45},E_GENTRIFY:{band:"#241b1b",bandH:.5},
+ FIN_IPO:{frame:"#c9a01c"},FIN_CHAIN:{frame:"#1c6b73"},BZ_FIRST:{frame:"#c9a01c"},BZ_NAME:{frame:"#c9a01c"}
+};
+
+/* ================= 结局牌面 60x80 ================= */
+const FW=64,FH=80;
+const BAD_TITLES=["GAME OVER","RETRY","SO CLOSE","TRY AGAIN","NO CASH","FLATLINE"];
+function titleFor(id,e){
+  if(e.t==="top")return "HIGH SCORE";
+  if(e.t==="good")return "CLEAR!";
+  if(e.t==="ok")return "STILL OPEN";
+  let h=0;const s=String(id);for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;
+  return BAD_TITLES[h%BAD_TITLES.length];
+}
+function faceOps(id,e,idx,o){
+  o=o||{};
+  const win=e.t==="good"||e.t==="top";
+  const fg=win?"a":"w";
+  const title=o.title||titleFor(id,e);
+  const hasDay=o.day!=null;
+  const ps=hasDay?1:fitPs(title,FW-4,2);
+  const pv=hasDay?{x:2,y:22,w:FW-4,h:38}:{x:2,y:13,w:FW-4,h:45};
+  const ops=[["frame",0,0,FW,FH,win?"a":"w",1],
+             ["txt",Math.round((FW-textW(title,ps))/2),hasDay?3:4,ps,title,fg]];
+  if(hasDay){const dl="DAY "+o.day;const dw=textW(dl,1);
+    ops.push(["fill",Math.round((FW-dw)/2)-2,12,dw+4,9,win?"a":"y"]);
+    ops.push(["txt",Math.round((FW-dw)/2),13,1,dl,win?"h":"k"]);}
+  ops.push(["frame",pv.x,pv.y,pv.w,pv.h,fg,1]);
+  place(o.parts||[],pv.x+2,pv.y+2,pv.w-4,pv.h-4,3).forEach(x=>ops.push(x));
+  ops.push(["fill",1,FH-19,FW-2,18,win?"w":"#111111"]);
+  ops.push(["line",1,FH-19,FW-2,1,fg]);
+  return ops;
+}
+function faceCanvas(id,e,idx,o,W){
+  const win=e.t==="good"||e.t==="top";
+  const cv=render(FW,FH,win?"h":"k",faceOps(id,e,idx,o),W||FW*4);
+  const g=cv.getContext("2d"),sc=cv.width/FW,u=Math.round(sc);
+  const name=String(e.n||"");
+  const fs=Math.max(9,Math.round(sc*3.6));
+  g.font="700 "+fs+'px "PingFang SC","Microsoft YaHei",sans-serif';
+  g.textAlign="center";g.textBaseline="middle";
+  g.fillStyle=col(win?"a":"w");
+  const cy=Math.round((FH-19+FH-1)*sc/2);
+  if(fs*name.length>cv.width-8*sc){
+    g.font="700 "+Math.round(fs*.78)+"px \"PingFang SC\",\"Microsoft YaHei\",sans-serif";
+    const a=name.slice(0,Math.ceil(name.length/2)),b=name.slice(Math.ceil(name.length/2));
+    const lh=Math.round(fs*.82);
+    g.fillText(a,cv.width/2,cy-lh/2);g.fillText(b,cv.width/2,cy+lh/2);
+  }else g.fillText(name,cv.width/2,cy);
+  return cv;
+}
+
+/* ================= 牌背 ================= */
+const cacheBack={};
+function backOps(){
+  const ops=[["frame",0,0,FW,FH,"w",1],["frame",3,3,FW-6,FH-6,"#6b5600",1]];
+  for(let r=0;r<7;r++)for(let c2=0;c2<6;c2++){
+    const cx=8+c2*10+((r%2)?5:0),cy=9+r*11;
+    if(cx<6||cx>FW-7||cy<6||cy>FH-8)continue;
+    ops.push(["line",cx-1,cy,3,1,"#4a3c00"]);ops.push(["line",cx,cy-1,1,3,"#4a3c00"]);
+  }
+  ops.push(["fill",Math.round(FW/2)-16,24,32,30,"k"]);
+  place([["steamer",3]],Math.round(FW/2)-16,24,32,30,3).forEach(x=>ops.push(x));
+  ops.push(["frame",Math.round(FW/2)-16,24,32,30,"w",1]);
+  ops.push(["txt",Math.round((FW-textW("BAOZIPU",1))/2),FH-12,1,"BAOZIPU","y"]);
+  return ops;
+}
+function backCanvas(W){
+  W=W||FW*4;
+  if(!cacheBack[W])cacheBack[W]=render(FW,FH,"k",backOps(),W);
+  const src=cacheBack[W];
+  const cv=document.createElement("canvas");cv.width=src.width;cv.height=src.height;
+  cv.getContext("2d").drawImage(src,0,0);return cv;
+}
+
+/* ================= 图鉴小图 ================= */
+function miniCanvas(id,e,idx,W){
+  const win=e.t==="good"||e.t==="top";
+  const fg=win?"a":"w";
+  const ops=[["frame",0,0,SW,SH,fg,1]];
+  ops.push(["txt",2,1,1,"#"+idx,fg]);
+  ops.push(["txt",SW-textW(win?"WIN":"DEAD",1)-2,1,1,win?"WIN":"DEAD",win?"a":"#8f2b22"]);
+  place(e.ill||END_ART[id]||ARC_ART[e.arc]||["steamer"],2,9,SW-4,SH-20,2).forEach(x=>ops.push(x));
+  return render(SW,SH,win?"h":"k",ops,W||SW*3);
+}
+
+/* ================= 图鉴：未解锁 ================= */
+function lockCanvas(W){
+  const ops=[];
+  for(let y=3;y<SH-3;y+=4)for(let x=3;x<SW-3;x+=4)ops.push(["fill",x,y,1,1,"#141414"]);
+  const bw=20,bh=20,bx=Math.round((SW-bw)/2),by=6;
+  ops.push(["fill",bx,by,bw,bh,"#0b0b0b"]);
+  place([["steamer",2]],bx+2,by+2,bw-4,bh-4,2).forEach(x=>ops.push(x));
+  ops.push(["frame",bx,by,bw,bh,"#333333",1]);
+  return render(SW,SH,"k",ops,W||SW*3);
+}
+
+/* ================= 首页大图 ================= */
+function heroCanvas(W){
+  const ops=illOps([["boy",2],["steamer",2],["bao",2],["coin",2]],
+    {label:"BAOZIPU",grnd:"#1d1d1d",grndH:.22,frame:"w"});
+  return render(SW,SH,"k",ops,W||SW*5);
+}
+
+/* ================= 对外接口 ================= */
+function artForScene(sc){
+  if(!sc)return{k:"steamer",o:{}};
+  const key=S_illKey(sc);
+  const v=SCENE_ART[key]||SCENE_ART[sc.t]||null;
+  if(v)return{list:v[0],opt:v[1]||{}};
+  return{list:["steamer","bao"],opt:{label:"START"}};
+}
+function S_illKey(sc){
+  if(sc.illKey&&SCENE_ART[sc.illKey])return sc.illKey;
+  if(SCENE_ART[sc.t])return sc.t;
+  const hay=(sc.t||"")+(sc.s||"")+(sc.p||"");
+  if(sc.kind==="invest"||/开一条新线|再复制一家/.test(hay))return"@invest";
+  if(sc.kind==="npc"||/转角|名册|先占|联营/.test(hay))return"@npc";
+  if(sc.kind==="revive")return"@revive";
+  for(const k in SCENE_ART){if(k[0]==="@")continue;if(hay.indexOf(k)>=0)return k;}
+  return null;
+}
+function artForEnding(id,e){
+  const l=e.ill||END_ART[id]||ARC_ART[e.arc]||["steamer","bao"];
+  return{list:l,opt:END_OPT[id]||e.iopt||{}};
+}
+function illHTML(sc){
+  const a=artForScene(sc);
+  return '<div class="ill"><canvas class="pxill" data-l="'+escA(JSON.stringify(a.list))+
+    '" data-o="'+escA(JSON.stringify(a.opt))+'"></canvas></div>';
+}
+function paintAll(root){
+  (root||document).querySelectorAll("canvas.pxill").forEach(cv=>{
+    if(cv.dataset.done)return;
+    const l=JSON.parse(cv.getAttribute("data-l")),o=JSON.parse(cv.getAttribute("data-o"));
+    const el=illOps(l,o);cv.parentNode.replaceChild(render(SW,SH,o.bg||"k",el,SW*5),cv);
+  });
+}
+function escA(s){return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;")}
+return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:paintAll,
+  faceCanvas:faceCanvas,faceOps:faceOps,backCanvas:backCanvas,miniCanvas:miniCanvas,
+  lockCanvas:lockCanvas,heroCanvas:heroCanvas,
+  artForScene:artForScene,artForEnding:artForEnding,illHTML:illHTML,titleFor:titleFor,
+  SW:SW,SH:SH,FW:FW,FH:FH,textW:textW,fitPs:fitPs,place:place};
+
+})();
+
+(function(){
+  const KEY="bzp.save.v1",HKEY="bzp.hof.v1",RKEY="bzp.run.v1",DKEY="bzp.diag.v1";
+  const $=s=>document.querySelector(s);
+  const store={
+    load(){try{return JSON.parse(localStorage.getItem(KEY))||{}}catch(e){return{}}},
+    save(o){try{localStorage.setItem(KEY,JSON.stringify(o))}catch(e){}},
+    loadHof(){try{const a=JSON.parse(localStorage.getItem(HKEY));return Array.isArray(a)?a:[]}catch(e){return[]}},
+    saveHof(a){try{localStorage.setItem(HKEY,JSON.stringify(a.slice(0,100)))}catch(e){}},
+    loadRun(){try{const r=JSON.parse(localStorage.getItem(RKEY));
+      return (r&&r.S&&r.cur&&r.S.day>0)?r:null}catch(e){return null}},
+    saveRun(r){try{localStorage.setItem(RKEY,JSON.stringify(r))}catch(e){}},
+    clearRun(){try{localStorage.removeItem(RKEY)}catch(e){}}
+  };
+  let meta=Object.assign({got:{},runs:0,best:0},store.load());
+  /* 载入计数：用来判断"页面自己刷新"到底是浏览器重载、标签回收，还是别的 */
+  let diag=(()=>{try{const d=JSON.parse(localStorage.getItem(DKEY));
+    return (d&&typeof d.n==="number")?d:{n:0,ts:0,hist:[]}}catch(e){return{n:0,ts:0,hist:[]}}})();
+  function whyReload(){
+    const t=[];
+    try{const nav=(performance.getEntriesByType("navigation")||[])[0];
+      if(nav)t.push({reload:"重新加载",back_forward:"前进/后退",navigate:"首次打开",
+        prerender:"预渲染"}[nav.type]||nav.type);
+    }catch(e){}
+    try{if(document.wasDiscarded)t.push("标签被系统回收后重建");}catch(e){}
+    if(!navigator.onLine)t.push("离线");
+    return t.join(" + ")||"未知";
+  }
+  function logLoad(extra){
+    const now=Date.now(),gap=diag.ts?Math.round((now-diag.ts)/1000):-1;
+    diag.n++;diag.last=whyReload();diag.gap=gap;diag.ts=now;
+    diag.hist=(diag.hist||[]).concat([{t:now,r:diag.last,e:extra||"",d:S?S.day:0}]).slice(-20);
+    try{localStorage.setItem(DKEY,JSON.stringify(diag))}catch(e){}
+    return gap;
+  }
+  function diagText(){
+    const g=diag.gap;
+    const ago=g<0?"首次":(g<60?g+" 秒前":(g<3600?Math.round(g/60)+" 分钟前":
+      (g<86400?Math.round(g/3600)+" 小时前":Math.round(g/86400)+" 天前")));
+    return "本机已加载 "+diag.n+" 次 · 距上次 "+ago+" · 原因："+(diag.last||"—");
+  }
+  let hof=store.loadHof();
+  let S=null,lastE=null,cur=null;
+
+  const wan=n=>{
+    const a=Math.abs(n);
+    if(a>=100000000)return (n/100000000).toFixed(2)+"亿";
+    if(a>=10000)return (n/10000).toFixed(a>=1000000?0:1)+"万";
+    return n.toLocaleString("zh-CN");
+  };
+  const ALL=Object.keys(DB.endings).length;
+  const pick=a=>a[Math.floor(Math.random()*a.length)];
+  const money=n=>(n<0?"-":"")+wan(Math.abs(n))+"元";
+
+  function show(v){
+    document.querySelectorAll(".delta").forEach(e=>e.remove());
+    document.querySelectorAll(".diag").forEach(e=>e.textContent=diagText());
+    ["home","play","end","codex","hof"].forEach(x=>$("#v-"+x).classList.toggle("hidden",x!==v));
+  }
+
+  /* ---------- 名册：按资本排名，越早留名越是元从 ---------- */
+  function hofRank(nm){for(let i=0;i<hof.length;i++)if(hof[i].nm===nm)return i;return -1}
+  function hofAdd(nm,net,eid,fmts){
+    nm=String(nm||"").trim().slice(0,8)||"无名氏";
+    const old=hof.filter(x=>x.nm===nm)[0];
+    hof=hof.filter(x=>x.nm!==nm);
+    hof.push({nm:nm,net:Math.max(0,Math.round(net)),e:eid,f:fmts,d:S?S.day:0,
+              ts:old?old.ts:Date.now(),pio:old?old.pio:hof.length<10});
+    hof.sort((a,b)=>b.net-a.net);
+    hof=hof.slice(0,100);
+    store.saveHof(hof);
+    return hofRank(nm);
+  }
+  const FALLBACK=["姓周的房东","卖面粉的老许","开货车的老陶","收租的陈太","粥铺的阿珍","跑批发的老马"];
+  const NPC={
+    name(role){
+      if(!hof.length)return pick(FALLBACK);
+      if(role==="pioneer"){
+        const pl=hof.filter(x=>x.pio);
+        if(pl.length)return pick(pl).nm;
+      }
+      const band={top:[0,1],pioneer:[0,Math.min(10,hof.length)],
+                  rival:[0,Math.min(20,hof.length)],all:[0,hof.length]}[role]||[0,hof.length];
+      const i=band[0]+Math.floor(Math.random()*Math.max(1,band[1]-band[0]));
+      return hof[Math.min(i,hof.length-1)].nm;
+    },
+    pioneer(nm){const x=hof[hofRank(nm)];return !!(x&&x.pio)}
+  };
+  function fill(s){
+    return String(s).replace(/\{(\w+)\}/g,(m,r)=>{
+      if(!S)return m;
+      if(S.npc[r]!=null)return S.npc[r];
+      let v;
+      if(r==="biz")v=bizKinds()?bizNames():"下一条还没开的线";
+      else if(r==="gapd")v=Math.max(4,Math.min(360,Math.round((hof.length?hof[0].net:0)/Math.max(1,wealth())*3)));
+      else v=NPC.name(r);
+      S.npc[r]=v;return v;
+    });
+  }
+
+  function home(){
+    const hc=$("#hero-art");
+    if(hc){const im=PIX.heroCanvas(310);hc.width=im.width;hc.height=im.height;hc.getContext("2d").drawImage(im,0,0);}
+    $("#s-got").textContent=Object.keys(meta.got).length;
+    $("#s-all").textContent=ALL;
+    $("#s-run").textContent=meta.runs;
+    $("#s-leader").innerHTML=hof.length
+      ?"本城榜首：<b>"+esc(hof[0].nm)+"</b> · "+wan(hof[0].net)+" 元"+
+       (hof.length>1?" · 名册已收录 "+hof.length+" 个名字":" · 名册上目前只有他一个")
+      :"名册还空着。第一个把净资产做到 10 万以上的人，会成为后来所有牌局里的「榜一」。";
+    const r=store.loadRun();
+    const rb=$("#b-resume"),sb=$("#b-start");
+    if(r){
+      rb.style.display="block";
+      rb.textContent="继续经营 · 第 "+Math.min(r.S.day,DB.start.days)+" 天";
+      sb.className="btn ghost";sb.textContent="重开一局";
+    }else{
+      rb.style.display="none";
+      sb.className="btn";sb.textContent="开铺子";
+    }
+    show("home");
+  }
+  function resume(){
+    const r=store.loadRun();
+    if(!r)return home();
+    S=r.S;cur=r.cur;
+    if(cur.k==="revive")revive(cur.title,cur.tag);
+    else drawScene();
+    return true;
+  }
+  /* 浏览器重载 / 标签回收后，直接回到那一屏，不用手点 */
+  function boot(){
+    const gap=logLoad();
+    const r=store.loadRun();
+    const fresh=r&&r.ts&&(Date.now()-r.ts)<12*3600*1000;
+    if(fresh){
+      try{
+        if(resume()){
+          const c=$("#resumed");
+          c.classList.remove("hidden");
+          c.innerHTML="<span>已自动接上第 <b>"+Math.min(S.day,DB.start.days)+"</b> 天"+
+            (gap>=0&&gap<600?"（页面刚被重载过）":"")+"</span><button type='button'>回首页</button>";
+          c.querySelector("button").onclick=home;
+          /* 提示条只在下回来那一次有用，玩家一选牌就收起来 */
+          const off=()=>{c.classList.add("hidden");c.innerHTML="";
+            $("#stage").removeEventListener("click",off,true)};
+          $("#stage").addEventListener("click",off,true);
+          return;
+        }
+      }catch(e){store.clearRun();}
+    }
+    home();
+  }
+
+  function startNew(){
+    show("play");
+    S={day:0,cash:DB.start.cash,rep:DB.start.rep,inv:0,revives:0,used:[],lesson:null,tag:"cash",
+       branch:0,capacity:0,biz:{},first:{},npc:{},rounds:0};
+    cur=null;store.clearRun();
+    next();
+  }
+  function fresh(){
+    const b=$("#b-start"),r=store.loadRun();
+    if(b&&r&&r.S&&r.S.day>1){
+      return arm(b,"再点一次：丢掉第 "+Math.min(r.S.day,DB.start.days)+" 天这局",startNew);
+    }
+    startNew();
+  }
+
+  function hud(){
+    $("#h-day").textContent="第 "+Math.min(S.day,DB.start.days)+" / "+DB.start.days+" 天";
+    $("#h-cash").textContent=wan(S.cash)+"元";
+    $("#h-rep").textContent=S.rep+" / 100";
+    $("#h-lv").textContent=S.branch?""+S.branch+"家店":S.capacity?"中央厨房":S.inv>=4?"有家伙":"简陋";
+    $("#b-cash").style.width=Math.max(0,Math.min(100,wealth()/500000*100))+"%";
+    $("#b-rep").style.width=Math.max(0,Math.min(100,S.rep))+"%";
+    let b='<span class="bchip base">包子铺<b>×'+(1+S.branch)+'</b>'+(S.capacity?'<i>+中央厨房</i>':'')+'</span>';
+    DB.formats.forEach(f=>{
+      const n=S.biz[f.k]||0;if(!n)return;
+      b+='<span class="bchip'+(S.first[f.k]<=6?" early":"")+'">'+esc(f.n)+'<b>×'+n+'</b>'+
+         '<i>'+(S.first[f.k]<=6?"先入局 +"+Math.round((fmMult(f.k)-1)*100)+"%":"第"+S.first[f.k]+"天进")+'</i></span>';
+    });
+    $("#h-biz").innerHTML=b;
+  }
+
+  function float(el,txt,cls){
+    if(!el)return;
+    const r=el.getBoundingClientRect(),a=document.createElement("div");
+    a.className="delta "+cls;a.textContent=txt;
+    a.style.left=Math.max(4,r.left+r.width-54)+"px";a.style.top=(r.top+2)+"px";
+    document.body.appendChild(a);setTimeout(()=>a.remove(),1150);
+  }
+
+  function scene(){
+    const chap=S.day<=4?1:S.day<=8?2:3;
+    const pool=DB.scenes.filter(s=>s.c===chap&&S.used.indexOf(s.t)<0);
+    const sc=pool.length?pick(pool):pick(DB.scenes.filter(s=>s.c===chap));
+    if(!sc)return null;
+    S.used.push(sc.t);
+    return sc;
+  }
+
+  /* ---------- 业态与先入局 ---------- */
+  const FM=DB.firstMove;
+  const fmt=k=>DB.formats.filter(f=>f.k===k)[0];
+  function bizKinds(){return DB.formats.filter(f=>S.biz[f.k]>0).length}
+  function bizUnits(){return DB.formats.reduce((s,f)=>s+(S.biz[f.k]||0),0)}
+  function bizNames(){return DB.formats.filter(f=>S.biz[f.k]>0).map(f=>f.n).join("、")}
+  /* 入场越早，同一条线的复利窗口越长——这是先入局优势的数学形式 */
+  function fmMult(k){
+    const f=S.first[k];if(f==null)return 1;
+    return 1+Math.min(FM.cap,FM.per*Math.max(0,DB.start.days-f));
+  }
+
+  /* ---------- 名册 NPC 局：先留名的人，会反过来影响这一局 ---------- */
+  function npcScene(){
+    if(!hof.length||S.day<4||S.used.indexOf("@npc")>=0)return null;
+    if(bizKinds()<1&&S.branch<1)return null;
+    S.used.push("@npc");
+    const top=hof[0],pl=hof.filter(x=>x.pio),pio=pl.length?pick(pl).nm:NPC.name("pioneer"),isPio=pl.length>0;
+    const gap=top.net/Math.max(1,wealth());
+    const o=[];
+    o.push({l:"按市价接手 {top} 手里那个转角铺位",fx:{cash:-42000,rep:5,inv:2},tag:"cash",
+      le:"位置是买不回来的稀缺品，但为稀缺付全价，等于承认自己来晚了。"});
+    if(isPio){
+      o.push({l:"托 {pioneer} 开口，用他当年的价",fx:{cash:-19000,rep:7,inv:2},tag:"people",
+        le:"早入局的人手里最值钱的不是铺子，是这条街上还认他的那句话。"});
+    }else{
+      o.push({l:"绕开那条街，去新盘底下等客流",fx:{cash:-9000,rep:-5,risk:.3},end:"E_BACKSTREET",tag:"people",
+        le:"没有位置优势时，你只能用时间换客流，而时间最贵。"});
+    }
+    if(gap>=3){
+      o.push({l:"接 {top} 的供货，挂他的牌子",fx:{cash:12000,rep:-8,risk:.42},end:"BZ_FRANCH",tag:"risk",
+        le:"借别人的品牌是笔负债：省下的获客成本，迟早用定价权还回去。"});
+    }else{
+      o.push({l:"跟 {top} 谈联营，各出一半",fx:{cash:-14000,rep:6,risk:.24},tag:"risk",
+        le:"合作结构的关键不是分几成，是谁掌握退出条款。"});
+    }
+    o.push({l:"不抢了，把这笔钱拿去开 {biz} 那条线",fx:{cash:-6000,rep:3},tag:"cost",
+      le:"抢不到的位置可以放弃，跟不上的窗口期放弃不了。"});
+    return {kind:"npc",c:S.day<=8?2:3,
+      t:"这条街最早的位置，有人先占了一步",
+      s:"你打听到这条街上最好的转角，合同上的名字是 {top}——他比你早到 {gapd} 天，现在身家 "+wan(top.net)+" 元。"+
+        (gap>=3?"他要弄死你，不需要理由，只需要降两块钱。":"他还没把你放在眼里，这算是个窗口。"),
+      p:isPio?"替你跑腿的是 {pioneer}，名册上排前十的老名字。这条街上还有人认他。":""
+              +"托人说情的那个人，名册上排在第 "+(hofRank(pio)+1)+" 位。",
+      o:o};
+  }
+
+  /* 每日流水：口碑带客流，设备提产能，分店扩规模，业态各赚各的钱 */
+  function dailyNet(){
+    if(S.day<=0)return 0;
+    const repF=0.45+S.rep/100;                       // 0.45 ~ 1.45
+    const invF=1+S.inv*0.12;
+    const sizeF=1+S.branch*0.85+(S.capacity?1.1:0);
+    let gross=2150*repF*invF*sizeF;
+    let fixed=560+S.branch*940+(S.capacity?1700:0);
+    const syn=1+0.05*(bizKinds()-1);                 // 组合协同：一条线的闲时喂另一条线
+    DB.formats.forEach(f=>{
+      const n=S.biz[f.k]||0;if(!n)return;
+      gross+=f.gross*n*repF*fmMult(f.k)*syn;
+      fixed+=f.fixed*n;
+    });
+    return Math.round(gross*(0.85+Math.random()*0.3)-fixed);
+  }
+  function wealth(){
+    let v=S.cash+S.branch*90000+(S.capacity?130000:S.inv*6000);
+    DB.formats.forEach(f=>{v+=(S.biz[f.k]||0)*f.val*fmMult(f.k)});
+    return Math.round(v);
+  }
+
+  function structural(){
+    if(S.capacity&&S.branch<2)return "E_FACTORY";
+    if(S.branch>=4)return "E_BRANCH2";
+    if(bizUnits()>=5)return "BZ_OVER";
+    if(S.biz.rest&&!S.capacity)return "BZ_REST";
+    if(S.biz.supply&&S.cash<30000)return "BZ_SUPPLY";
+    if(S.biz.franch&&S.rep<48)return "BZ_FRANCH";
+    return null;
+  }
+
+  /* ---------- 投资局：随资本解锁的新一轮业态 ---------- */
+  function canBuy(f){
+    if(f.k!=="fund"&&(S.biz[f.k]||0)>0)return false;
+    if(S.cash<f.fee)return false;
+    const nd=f.need||{};
+    if(nd.rep&&S.rep<nd.rep)return false;
+    if(nd.branch&&S.branch<nd.branch)return false;
+    if(nd.capacity&&!S.capacity)return false;
+    return true;
+  }
+  function investScene(){
+    const can=DB.formats.filter(canBuy).sort(()=>Math.random()-.5).slice(0,4);
+    if(!can.length)return null;
+    S.rounds++;
+    const early=S.day<=4;
+    const o=can.slice(0,3).map(f=>({
+      l:"开一条新线："+f.n+"（先付 "+wan(f.fee)+" 元）",
+      fx:{cash:-f.fee,biz:(function(x){const b={};b[x]=1;return b})(f.k)},
+      le:f.d+(early?" 现在进场，这条街还没第二个人。":" 进场晚了，好位置已经被人占走。"),
+      tag:f.tag
+    }));
+    const big=DB.formats.filter(f=>S.biz[f.k]>0).sort((a,b)=>b.fee-a.fee)[0];
+    if(big){
+      const c=Math.round(big.fee*0.7);
+      o.push({l:"不摊开，全押在"+big.n+"上，再复制一家",
+        fx:{cash:-c,biz:(function(x){const b={};b[x]=1;return b})(big.k)},
+        le:"集中让效率变高，也让你只剩一次机会。",risk:.34,end:"BZ_LONE",tag:"risk"});
+    }
+    o.push({l:"不投，钱留在账上",fx:{cash:0,rep:1},tag:"cash",
+      le:"现金的期权价值，只有在真出现你买得起的机会时才不算浪费。"});
+    return {kind:"invest",c:S.day<=8?2:3,
+      t:["手里第一次有了多余的钱","账上又多出一笔能动的钱","供应商开始问你还做不做别的","有人来问你收不收加盟费"][(S.rounds-1+4)%4],
+      s:"包子铺这条线跑顺了。"+(S.branch?"你手上已经有 "+S.branch+" 家分店，":"")+
+        "同一个供应商、同一间中央厨房、同一批熟客——现在的问题是：把赚来的钱再变成什么。",
+      p:early?"越早进场，同一条线能替你赚钱的天数就越长。这个差别不会被抹平，只会被后来的人用更高的价钱买回去。"
+              :"你已经有 "+bizKinds()+" 条线了。多一条线不是多一份收入，是多一份固定成本和一个没人看的角落。",
+      o:o};
+  }
+  function next(){
+    if(S.cash<-40000)return ending("BK1","等你看清欠款总额那天，已经没有谈的余地了。");
+    if(S.cash<0)return revive("你的现金账户已经见底。房东、供货商和员工的工资在同一天到期。",S.tag||"cash");
+    if(S.day>=DB.start.days)return ending(finale());
+    S.day++;
+    const net=dailyNet();
+    S.cash+=net;
+    if(net>0)S.rep=Math.min(100,S.rep+1);
+    else if(net<-2500&&S.day>2)S.rep=Math.max(0,S.rep-2);
+    const st=structural();
+    if(st)return ending(st);
+    const sc=(S.day===4||S.day===6||S.day===8||S.day===10)&&investScene()||npcScene()||scene();
+    if(!sc)return ending(finale());
+    cur={k:"scene",sc:sc,net:net};
+    saveRun();
+    drawScene();
+  }
+  function drawScene(){
+    if(!cur||cur.k!=="scene")return;
+    const sc=cur.sc,net=cur.net;
+    show("play");
+    hud();
+    const chapName={1:"起步",2:"发展",3:"扩张"}[sc.c];
+    let h='<div class="card"><span class="tag">'+chapName+' · 第 '+S.day+' 天</span>';
+    if(S.day>1)h+='<div class="ledger">'+(net>=0?"▲":"▼")+' 昨日'+(net>=0?"净利":"净亏")+' '+money(net)+' · 净资产 '+money(wealth())+'</div>';
+    h+=PIX.illHTML(sc);
+    h+='<h1 class="title">'+esc(fill(sc.t))+'</h1><p class="story">'+esc(fill(sc.s))+'</p>';
+    if(sc.p)h+='<p class="story" style="color:#b8a99a;font-size:13.5px">'+esc(fill(sc.p))+'</p>';
+    sc.o.forEach((op,i)=>{
+      h+='<button class="opt" data-i="'+i+'"><b>'+("甲乙丙丁戊己庚"[i]||i+1)+'</b>'+esc(fill(op.l))+
+         (op.fx&&op.fx.biz&&Object.keys(op.fx.biz)[0]?'<small>'+esc(fmt(Object.keys(op.fx.biz)[0]).n)+'：'+
+          esc(fmt(Object.keys(op.fx.biz)[0]).d)+'</small>':'')+'</button>';
+    });
+    if(S.lesson){
+      h+='<div class="lesson '+(S.lesson.bad?"warn":"")+'"><b>'+(S.lesson.bad?"教训":"知识点")+'</b>'+esc(S.lesson.tx)+'</div>';
+    }
+    h+='<button class="btn ghost" data-give="1">关掉蒸笼，收摊</button></div>';
+    $("#stage").innerHTML=h;
+    PIX.paintAll($("#stage"));
+    $("#stage").querySelectorAll(".opt").forEach(b=>b.onclick=()=>choose(sc,+b.dataset.i,b));
+    $("#stage").querySelector('[data-give]').onclick=function(){
+      const b=this;
+      arm(b,"再点一次：确认收摊",()=>{lock(b);ending(giveUp())});
+    };
+  }
+
+  function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
+
+  /* 一次点击只算一次：连点会让同一个选项生效两遍 */
+  /* 误触保护：危险动作要点两次，四秒内不点第二次就撤销 */
+  function arm(btn,label,fn){
+    if(!btn)return;
+    if(btn.dataset.armed){
+      clearTimeout(+btn.dataset.armed);btn.removeAttribute("data-armed");
+      btn.textContent=btn.dataset.orig;btn.classList.remove("red");
+      return fn();
+    }
+    btn.dataset.orig=btn.textContent;btn.textContent=label;btn.classList.add("red");
+    const t=setTimeout(()=>{
+      if(!btn.dataset.armed)return;
+      btn.removeAttribute("data-armed");btn.textContent=btn.dataset.orig;btn.classList.remove("red");
+    },4000);
+    btn.dataset.armed=t;
+  }
+
+  function lock(el){
+    const st=el&&el.closest("#stage");if(!st)return;
+    st.querySelectorAll("button").forEach(x=>{x.disabled=true;x.style.pointerEvents="none"});
+  }
+
+  function choose(sc,i,btn){
+    lock(btn);
+    const op=sc.o[i];
+    const fx=op.fx||{};
+    S.cash+=(fx.cash||0);
+    S.rep=Math.max(0,Math.min(100,S.rep+(fx.rep||0)));
+    S.inv+=(fx.inv||0);
+    if(op.br)S.branch+=op.br;
+    if(op.cap)S.capacity=1;
+    if(fx.biz)Object.keys(fx.biz).forEach(k=>{
+      S.biz[k]=(S.biz[k]||0)+fx.biz[k];
+      if(S.first[k]==null)S.first[k]=S.day;
+    });
+    hud();
+    float($("#h-cash"),(fx.cash>=0?"+":"")+wan(fx.cash||0),fx.cash>=0?"up":"down");
+    if(fx.rep)float($("#h-rep"),(fx.rep>0?"+":"")+fx.rep,fx.rep>0?"up":"down");
+    if(navigator.vibrate)try{navigator.vibrate(12)}catch(e){}
+    S.tag=op.tag||"cash";
+    const risk=fx.risk||op.risk||0;
+    if(op.end&&!risk)return ending(op.end,op.le);
+    if(risk&&Math.random()<risk){
+      if(op.end)return ending(op.end,op.le);
+      const pool=Object.keys(DB.endings).filter(k=>/^E_/.test(k)&&DB.endings[k].tag===S.tag);
+      return ending(pool.length?pick(pool):randomBad(),op.le);
+    }
+    S.lesson={tx:op.le||"",bad:false};
+    setTimeout(next,240);
+  }
+
+  function randomBad(){
+    const pool=Object.keys(DB.endings).filter(k=>!/^FIN_/.test(k));
+    return pick(pool);
+  }
+
+  function revive(title,tag){
+    const right=DB.books.filter(b=>b.tag===tag);
+    const others=DB.books.filter(b=>b.tag!==tag);
+    others.sort(()=>Math.random()-.5);
+    const set=[right[0]||DB.books[0]].concat(others.slice(0,2)).sort(()=>Math.random()-.5);
+    S.reviveTitle=title;
+    cur={k:"revive",title:title,tag:tag};
+    saveRun();
+    hud();
+    let h='<div class="card"><span class="tag">破产警告</span>';
+    h+=PIX.illHTML({kind:"revive"});
+    h+='<h1 class="title">你需要一本书救命</h1>';
+    h+='<p class="story">'+esc(title)+'</p>';
+    h+='<p class="story" style="color:#b8a99a;font-size:13.5px">'+esc(S.lesson?S.lesson.tx:"钱没了的时候，才知道该读哪一本。")+'</p>';
+    set.forEach((b,i)=>{h+='<button class="opt" data-i="'+i+'"><b>'+("甲乙丙"[i])+'</b>'+esc(b.n)+'<small>书店里只有这三本，你只来得及翻封面。</small></button>'});
+    h+='</div>';
+    $("#stage").innerHTML=h;
+    PIX.paintAll($("#stage"));
+    show("play");window.scrollTo(0,0);
+    $("#stage").querySelectorAll(".opt").forEach(el=>el.onclick=()=>{
+      lock(el);
+      const b=set[+el.dataset.i];
+      if(b.tag===tag&&S.revives<1){
+        S.revives++;S.cash=Math.round(DB.start.cash*1.5);S.rep=Math.max(20,S.rep-6);
+        S.lesson={tx:b.n.replace(/[《》]/g,"")+"： "+b.why,bad:true};
+        return next();
+      }
+      if(S.revives>=1)return ending("BK4",b.why);
+      ending("BK2",b.why);
+    });
+  }
+
+  function finale(){
+    const c=S.cash,r=S.rep,n=S.branch,k=bizKinds(),u=bizUnits();
+    const early=bizKinds()>=3&&Object.keys(S.first).every(d=>S.first[d]<=7);
+    /* 终局按经营形态判定，而不是只看余额：业态越多样、进场越早，天花板越高 */
+    if(hof.length&&k>=4&&c>=620000)return "BZ_NAME";    // 组合成型，且你在名册上留过名
+    if(k>=3&&early&&c>=380000)return "BZ_FIRST";        // 先入局 + 多线
+    if(k>=3&&c>=200000)return "BZ_PORT";                // 组合本身就是一种护城河
+    if(n>=2&&S.capacity&&c>=150000)return "FIN_IPO";    // 有店、有中央厨房、有现金 = 可复制
+    if(k>=2&&S.capacity&&c>=320000)return "FIN_IPO";
+    if(r>=85&&n<=1&&k===0&&c>=60000)return "FIN_LEGACY";// 一家店，一条街
+    if(n>=2||S.capacity||u>=3)return "FIN_CHAIN";
+    if(c>=120000)return "FIN_OK";
+    if(c>=30000)return "FIN_SURVIVE";
+    return "FIN_CLOSE";
+  }
+  function giveUp(){
+    const c=S.cash,r=S.rep,n=S.branch,k=bizKinds();
+    if(k>=3&&c>=220000)return "BZ_PORT";
+    if(c>=200000&&n>=2)return "FIN_CHAIN";
+    if(r>=85&&c>=60000)return "FIN_LEGACY";
+    if(c>=120000)return "FIN_OK";
+    if(c>=30000)return "FIN_SURVIVE";
+    return "FIN_QUIT";
+  }
+
+  /* ---------- 结局牌渲染 ---------- */
+  const ORDER=Object.keys(DB.endings);
+  function cardHTML(id,e,uid){
+    const win=e.t==="good"||e.t==="top";
+    return '<div class="tarot'+(win?" win":"")+'" id="tarot">'
+      +'<canvas class="tf tf-back" width="240" height="320"></canvas>'
+      +'<canvas class="tf tf-front" width="240" height="320"></canvas>'
+      +'</div>';
+  }
+  function paintCard(id,e,idx){
+    const t=$("#tarot");if(!t)return;
+    const a=PIX.artForEnding(id,e);
+    const put=(cls,img)=>{
+      const old=t.querySelector("."+cls);if(!old||!img)return;
+      img.className="tf "+cls;
+      old.parentNode.replaceChild(img,old);
+    };
+    put("tf-back",PIX.backCanvas(240));
+    put("tf-front",PIX.faceCanvas(id,e,idx,{parts:a.list,day:S?S.day:null},240));
+  }
+  let flipT=null;
+  function mountCard(){
+    const t=$("#tarot");if(!t)return;
+    const hint=$("#e-hint");
+    const doFlip=()=>{
+      t.classList.add("open");
+      hint.textContent="轻触牌面 · 可再扣回";hint.classList.add("on");
+      if(navigator.vibrate)try{navigator.vibrate([10,40,14])}catch(e){}
+    };
+    t.onclick=()=>{t.classList.toggle("open");
+      const on=t.classList.contains("open");
+      hint.textContent=on?"轻触牌面 · 可再扣回":"牌已扣下 · 轻触翻开";
+      hint.classList.toggle("on",on);};
+    clearTimeout(flipT);
+    flipT=setTimeout(doFlip,520);
+  }
+
+  function ending(id,le,fromChoice){
+    if(!DB.endings[id])id="FIN_CLOSE";
+    const e=DB.endings[id];
+    cur=null;store.clearRun();
+    const isNew=!meta.got[id];
+    meta.got[id]=1;meta.runs++;
+    if(S.cash>meta.best)meta.best=S.cash;
+    store.save(meta);
+    const idx=ORDER.indexOf(id)+1;
+    $("#e-card").innerHTML=cardHTML(id,e,"c"+meta.runs+"_");
+    paintCard(id,e,idx);
+    mountCard();
+    const done=S.day>=DB.start.days;
+    $("#e-chap").textContent="第 "+S.day+" 天 · "
+      +(id==="FIN_QUIT"?"主动收摊":done?"十二天结束":id.indexOf("FIN_")===0?"提前收摊":"中途结局")
+      +" · 结局 #"+idx+(isNew?" · 新收录":"");
+    $("#e-text").textContent=e.tx;
+    const lessonText=le===null?"":(le||e.le||"");
+    $("#e-lesson").style.display=lessonText?"":"none";
+    $("#e-le").textContent=lessonText;
+    $("#e-cash").textContent=wan(S.cash);
+    $("#e-net").textContent=wan(wealth());
+    $("#e-rep").textContent=S.rep+" / 100";
+    lastE=id;home_count();
+    resetSign();
+    show("end");
+    window.scrollTo(0,0);
+  }
+
+  /* ---------- 帮上留名 ---------- */
+  const SURN=["老","小","陈","周","李","赵","孙","吴","郑","冯","卫","蒋","沈","韩","杨","朱","秦","许","何","吕"];
+  const TAIL=["包子","面点","蒸笼","早点","街坊","掌柜","摊主","老板","师傅","伙计","擀面杖","豆浆","肉夹馍"];
+  function suggest(){return pick(SURN)+"家的"+pick(TAIL)}
+  function resetSign(){
+    const box=$("#e-sign"),ip=$("#in-name"),bt=$("#b-sign"),ms=$("#sign-msg");
+    box.classList.remove("done");ip.disabled=false;bt.disabled=false;
+    ip.value="";ip.placeholder="建议："+suggest();
+    ms.className="signmsg";
+    ms.textContent="这一局净资产 "+wan(wealth())+" 元。留个名号，下一局它就会出现在别人的牌局里。";
+  }
+  function sign(){
+    if($("#e-sign").classList.contains("done"))return;
+    const nm=String($("#in-name").value||"").trim().slice(0,8)||
+             ($("#in-name").placeholder||"").replace(/^建议：/,"")||"无名氏";
+    const net=wealth();
+    const r=hofAdd(nm,net,lastE,bizKinds()?bizNames():"包子铺");
+    const ms=$("#sign-msg"),bt=$("#b-sign"),ip=$("#in-name");
+    $("#e-sign").classList.add("done");ip.disabled=true;bt.disabled=true;bt.textContent="已上榜";
+    ms.className="signmsg"+(r===0?" hi":" ok");
+    let t="「"+nm+"」记在第 "+(r+1)+" 位，净资产 "+wan(net)+" 元。";
+    const me=hof[r];
+    if(me&&me.pio)t+="你算元从——最早留名的那批人，名字会在后来的牌局里被人反复提起。";
+    if(r===0)t+="下一局开始，那条街最好的位置，写的是你的名字。";
+    else if(hof[0]&&hof[0].nm!==nm)t+="排在你前面的是「"+hof[0].nm+"」，"+wan(hof[0].net)+" 元。";
+    ms.textContent=t;
+    home_count();
+  }
+  function home_count(){
+    $("#e-count").textContent="结局 "+Object.keys(meta.got).length+" / "+ALL+
+      " · 名册 "+hof.length+" / 100 · 最高纪录 "+wan(meta.best)+"元";
+  }
+
+  function hofView(){
+    $("#hof-sub").textContent=hof.length
+      ?"共 "+hof.length+" 个名字。榜首 "+hof[0].nm+"，净资产 "+wan(hof[0].net)+" 元。"
+      :"一个名字都还没有。";
+    $("#hof-list").innerHTML=hof.length?hof.map((x,i)=>{
+      const e=DB.endings[x.e];
+      return '<div class="hrow'+(i===0?" top1 p1":i<3?" top3":"")+'">'+
+        '<span class="rk">'+(i+1)+'</span>'+
+        '<div class="hn"><b>'+esc(x.nm)+'</b><i>'+esc(x.f||"包子铺")+' · '+
+          (e?esc(e.n):"—")+(x.d?" · 第 "+x.d+" 天":"")+'</i></div>'+
+        (x.pio?'<span class="pio">元从</span>':'')+
+        '<span class="hv">'+wan(x.net)+'</span></div>';
+    }).join(""):'<div class="hempty">还没人留名。<br>第一个把净资产做到 10 万以上的人，之后会一直在别人的牌局里当 NPC。</div>';
+    show("hof");window.scrollTo(0,0);
+  }
+
+  function codex(){
+    const keys=ORDER;
+    const n=Object.keys(meta.got).length;
+    $("#cx-num").textContent=n+" / "+keys.length+" 个结局已解锁";
+    $("#cx-note").textContent="共 "+keys.length+" 个结局。白框黑底的是死法，薄荷绿底的是活下来的人；没解锁的只有一格黑影。凑齐它们只能靠反复重开，和反复做不一样的决定。";
+    $("#cx-grid").innerHTML=keys.map((k,i)=>{
+      const e=DB.endings[k],g=meta.got[k];
+      return '<div class="mini'+(g?" got":" lock")+'" data-k="'+k+'" data-i="'+i+'">'
+        +'<canvas width="186" height="120"></canvas>'
+        +'<div class="mn">'+(g?esc(e.n):"未解锁")+'</div></div>';
+    }).join("");
+    $("#cx-grid").querySelectorAll(".mini").forEach(el=>{
+      const k=el.dataset.k,i=+el.dataset.i,e=DB.endings[k];
+      const cv=el.querySelector("canvas");
+      const img=meta.got[k]?PIX.miniCanvas(k,e,i+1,186):PIX.lockCanvas(186);
+      cv.width=img.width;cv.height=img.height;
+      cv.getContext("2d").drawImage(img,0,0);
+      cv.style.cssText="position:absolute;inset:0;width:100%;height:100%;image-rendering:pixelated";
+    });
+    show("codex");
+  }
+
+  $("#b-start").onclick=fresh;
+  $("#b-resume").onclick=resume;
+  function saveRun(){if(S&&cur)store.saveRun({v:1,ts:Date.now(),S:S,cur:cur})}
+  window.addEventListener("pagehide",saveRun);
+  document.addEventListener("visibilitychange",()=>{if(document.hidden)saveRun()});
+  window.addEventListener("pageshow",e=>{if(e.persisted)logLoad("bfcache 恢复")});
+  $("#b-hof").onclick=hofView;
+  $("#b-hof2").onclick=hofView;
+  $("#b-hback").onclick=home;
+  $("#b-sign").onclick=sign;
+  $("#in-name").onkeydown=e=>{if(e.key==="Enter")sign()};
+  $("#b-codex").onclick=codex;
+  $("#b-codex2").onclick=codex;
+  $("#b-back").onclick=home;
+  $("#b-home").onclick=home;
+  $("#b-again").onclick=startNew;
+  $("#b-reset").onclick=()=>{
+    if(!confirm("清空所有已解锁结局、名册和正在经营的那一局？"))return;
+    meta={got:{},runs:0,best:0};store.save(meta);
+    hof=[];store.saveHof(hof);
+    store.clearRun();S=null;cur=null;home();
+  };
+
+  boot();
+})();
+</script>
+</body>
+</html>
