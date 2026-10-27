@@ -242,7 +242,7 @@ p.story{font-size:15px;line-height:1.8;color:#fff;margin:0 0 4px;white-space:pre
   <!-- 图鉴 -->
   <section id="v-hof" class="hidden">
     <div class="card">
-      <span class="tag">HALL OF FAME · 本城百商</span>
+      <span class="tag" id="hof-tag">HALL OF FAME · 本城百商</span>
       <h1 class="title">名册</h1>
       <div class="story" id="hof-sub"></div>
       <div class="hofnote" id="hof-note">按净资产排名，只记在这台机器上。最早留名的十位算<b>元从</b>——他们的名字会出现在后来人的牌局里，做你的房东、同行或投资人。先占住的位置，别人要用更高的价钱买回去。</div>
@@ -1575,6 +1575,7 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
 
   function hofView(){
     const paint=()=>{
+    $("#hof-tag").textContent="HALL OF FAME · "+(netst.on?"全网百商":"本城百商");
     $("#hof-sub").textContent=(hof.length
       ?"共 "+hof.length+" 个名字。榜首 "+hof[0].nm+"，净资产 "+wan(hof[0].net)+" 元。"
       :"一个名字都还没有。")+(netst.on?" "+netStamp():"");
