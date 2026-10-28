@@ -131,6 +131,16 @@ p.story{font-size:15px;line-height:1.8;color:#fff;margin:0 0 4px;white-space:pre
 .bchip.early{border-color:#1c6b73;background:#04282c;color:#9be2e4}
 .bchip.base{border-style:dashed;opacity:.8}
 .bchip i{font-style:normal;opacity:.75;font-size:9px}
+.bchip.warn{border-color:#8f2b22;background:#1a0605;color:#ff8a7a}
+.optfx{display:block;margin-top:4px;padding-left:28px;font-size:11px;color:#8b8b8b;letter-spacing:.02em}
+.warnlist{margin:10px 0 2px;padding:8px 10px;border:1px solid #8f2b22;background:#160504;
+  color:#ff8a7a;font-size:12px;line-height:1.75}
+.gate{margin:8px 0 2px;font-size:12px;color:#ffd42a;border-bottom:1px dashed #4a3f18;padding-bottom:6px}
+.cause{margin-top:12px;padding:11px 12px;border:1px solid #3a3a3a;background:#0c0c0c;font-size:12.5px;line-height:1.7}
+.cause>b{display:block;color:#ff8a7a;font-size:11px;letter-spacing:.16em;margin-bottom:6px}
+.cause .crow{display:flex;gap:8px;margin-top:5px}
+.cause .crow i{flex:0 0 62px;font-style:normal;color:#8f8f8f;font-size:11px;letter-spacing:.04em}
+.cause .crow span{color:#d8d2c2}
 
 /* ---------- 留名 ---------- */
 .sign{padding:14px 14px 15px}
@@ -176,7 +186,7 @@ p.story{font-size:15px;line-height:1.8;color:#fff;margin:0 0 4px;white-space:pre
     <div class="hero">
       <canvas id="hero-art" width="310" height="200"></canvas>
       <h1>包子铺 · 人生模拟</h1>
-      <div class="sub">十二天，从一口蒸笼开始。<br>致敬 2014 年那款已经打不开的《财务包子铺》——原作是知乎为推广《金钱有术》做的 H5 软游戏，站点早已 502。这里是一版重制：规则自写，结局管够，赚到钱之后还能往奶茶、快餐、饭店、供应链和别人的项目里去。</div>
+      <div class="sub">二十四天，五幕：立店 → 生存 → 口碑 → 扩张 → 资本。<br>致敬 2014 年那款已经打不开的《财务包子铺》——原作是知乎为推广《金钱有术》做的 H5 软游戏，站点早已 502。这里是一版重制：规则自写，结局管够，赚到钱之后还能往奶茶、快餐、饭店、供应链和别人的项目里去。</div>
       <div class="stats">
         <div><span id="s-got">0</span><em>已解锁结局</em></div>
         <div><span id="s-all">0</span><em>结局总数</em></div>
@@ -214,6 +224,7 @@ p.story{font-size:15px;line-height:1.8;color:#fff;margin:0 0 4px;white-space:pre
       <span class="tag" id="e-chap"></span>
       <div class="endText" id="e-text"></div>
       <div class="lesson" id="e-lesson"><b>复盘</b><span id="e-le"></span></div>
+      <div class="cause" id="e-cause"></div>
       <div class="hud" style="margin-top:14px">
         <div class="cell"><div class="k"><span>现金</span></div><div class="v" id="e-cash"></div></div>
         <div class="cell"><div class="k"><span>净资产</span></div><div class="v" id="e-net"></div></div>
@@ -265,7 +276,7 @@ p.story{font-size:15px;line-height:1.8;color:#fff;margin:0 0 4px;white-space:pre
 <script>
 /*DATA-START*/
 const DB = {
-  start:{cash:50000,rep:60,days:12},
+  start:{cash:50000,rep:60,days:24},
   books:[
     {n:"《先活下来：现金流比利润重要》",tag:"cash",why:"账面赚、手里空，是死在现金流上的铺子唯一救命的地方。"},
     {n:"《一块钱算三年：成本结构》",tag:"cost",why:"把固定成本和变动成本算清楚，敢涨价也敢砍掉装修。"},
@@ -276,22 +287,22 @@ const DB = {
   /* ---------- 业态：商业模式多样性，入场越早复利越久 ---------- */
   formats:[
     {k:"tea",   n:"奶茶铺",     ic:"cup",     fee:26000,  gross:2600, fixed:520,  val:46000,  tag:"cost",
-     d:"毛利最高的一条线，也是最快被抄的一条线。",
+     need:{rep:40},d:"毛利最高的一条线，也是最快被抄的一条线。",
      warn:{cash:-38000,rep:-6,risk:.30,end:"BZ_TEA",   le:"同一条街上自己打自己，客流不会新增，只会分摊。"}},
     {k:"fast",  n:"快餐档口",   ic:"lantern", fee:40000,  gross:3300, fixed:680,  val:68000,  tag:"cash",
-     d:"只做午市两个半小时，翻台就是全部。",
+     need:{rep:48},d:"只做午市两个半小时，翻台就是全部。",
      warn:{cash:-56000,rep:-4,risk:.26,end:"BZ_OVER",  le:"多业态的第一笔成本不是钱，是人。"}},
     {k:"rest",  n:"社区饭店",   ic:"wand",    fee:92000,  gross:6200, fixed:1500, val:165000, tag:"people",
-     d:"最慢的生意，也最像资产。",
+     need:{branch:2,capacity:1},d:"最慢的生意，也最像资产。",
      warn:{cash:-128000,rep:-8,risk:.30,end:"BZ_REST", le:"没有标准化的厨房，饭店就是一口口孤灶。"}},
     {k:"supply",n:"中央供应链", ic:"serpent", fee:68000,  gross:2600, fixed:420,  val:120000,  tag:"cost",
-     d:"给同行供货，赚的不是面钱，是账期。",
+     need:{branch:1},d:"给同行供货，赚的不是面钱，是账期。",
      warn:{cash:-96000,rep:-5,risk:.28,end:"BZ_SUPPLY",le:"你把账期给了别人，就把现金流给了别人。"}},
     {k:"franch",n:"加盟授权",   ic:"key",     fee:18000,  gross:3000, fixed:220,  val:34000,  tag:"risk",
-     d:"收品牌的租金，赌别人的品控。",
+     need:{branch:1,rep:52},d:"收品牌的租金，赌别人的品控。",
      warn:{cash:-24000,rep:-10,risk:.36,end:"BZ_FRANCH",le:"授权出去的不只是招牌，还有你全部的信誉余额。"}},
     {k:"fund",  n:"对外投资",   ic:"coin",    fee:48000,  gross:1200, fixed:0,    val:105000,  tag:"cash",
-     d:"把钱放进别人的项目，回报永远在后面。",
+     need:{branch:1,capacity:1},d:"把钱放进别人的项目，回报永远在后面。",
      warn:{cash:-70000,rep:-3,risk:.40,end:"BZ_FUND",  le:"你看不懂的项目，唯一看得懂的是它的收益率。"}}
   ],
   /* 先入局：入场越早，同一笔钱复利越久 */
@@ -306,20 +317,20 @@ const DB = {
     FIN_OK:{n:"日子过得去",t:"ok",arc:"sun",tx:"一家店，两口子，一个帮工。月底存下三五千。\n不风光，但也没欠谁。你把它叫作「还行」。",le:"跑平成本、不靠杠杆，本身已经赢过八成的创业者。"},
     FIN_SURVIVE:{n:"勉强喘气",t:"ok",arc:"hourglass",tx:"账上刚够下个月的房租。你把蒸笼擦了又擦，明天还得早起。\n不算成功，但你没跑。",le:"活下来不等于健康，长期贴着现金流红线经营就是在等一个意外。"},
     FIN_QUIT:{n:"我关掉了那口蒸笼",t:"ok",arc:"key",tx:"没有破产，没有事故。某天早上四点十分，你在门口站了一会儿，然后回去把火关了。\n转让费不高，你没还价。你终于睡了个整觉，醒来第一件事是想吃包子。",le:"退出也是一个决策。主动离场和被迫清盘的差别，在于你还留着选择权。"},
-    FIN_CLOSE:{n:"卷帘门拉下来了",t:"bad",arc:"tower",tx:"最后一天你把剩下的包子送给了隔壁五金店。\n他没问为什么，你也没说。十二天，从有铺子到没铺子。",le:"大多数倒闭不是死于不赚钱，而是死于钱不够付下一个到期日。"},
+    FIN_CLOSE:{n:"卷帘门拉下来了",t:"bad",arc:"tower",tx:"最后一天你把剩下的包子送给了隔壁五金店。\n他没问为什么，你也没说。二十四天，从有铺子到没铺子。",le:"大多数倒闭不是死于不赚钱，而是死于钱不够付下一个到期日。"},
 
     /* 破产线 */
     BK1:{n:"被自己的账本逼走",t:"bad",arc:"anchor",tx:"供货商堵门，房东堵门，你从后门走的。\n没签合同，所以没得谈。",le:"创业初期，负债的期限比负债的数额更要命。",tag:"cash"},
-    BK2:{n:"救命书选错了",t:"bad",arc:"dice",tx:"你在书店里挑了最厚的一本，觉得厚的应该更管用。\n读完第一章，铺子被人接手了。",le:"救命的方法要对症。药不对，钱是白扔的。"},
-    BK3:{n:"借了不该借的钱",t:"bad",arc:"serpent",tx:"三个月的过桥资金，年化听着不高，因为你只听见了「不高」。\n第四个月你开始用另一笔钱还这笔钱。",le:"用短期高息资金补长期投入，是现金流最经典的死法。"},
-    BK4:{n:"第二次破产是不必要的",t:"bad",arc:"hourglass",tx:"第一次救活你的是别人，第二次没人伸手。\n你才懂：续命只有一次，是运气，不是能力。",le:"重整机会的成本极高，第二次通常不再存在。"},
+    BK2:{n:"救命书选错了",t:"bad",arc:"dice",tx:"你在书店里挑了最厚的一本，觉得厚的应该更管用。\n读完第一章，铺子被人接手了。",le:"救命的方法要对症。药不对，钱是白扔的。",tag:"cash"},
+    BK3:{n:"借了不该借的钱",t:"bad",arc:"serpent",tx:"三个月的过桥资金，年化听着不高，因为你只听见了「不高」。\n第四个月你开始用另一笔钱还这笔钱。",le:"用短期高息资金补长期投入，是现金流最经典的死法。",tag:"cash"},
+    BK4:{n:"第二次破产是不必要的",t:"bad",arc:"hourglass",tx:"第一次救活你的是别人，第二次没人伸手。\n你才懂：续命只有一次，是运气，不是能力。",le:"重整机会的成本极高，第二次通常不再存在。",tag:"cash"},
 
     /* 起步章 */
     E_RENT:{n:"房东的免费午餐",t:"bad",arc:"anchor",tx:"押一付六，签约当天你还请中介吃了顿饭。\n第三个月客流没起来，第六个月房东涨了四成。你付了十二个月的房租，只做了三个月生意。",le:"预付租金等于把流动资金换成了一项无法退出的长期资产。",tag:"cash"},
     E_CENTER:{n:"死在好地段",t:"bad",arc:"coin",tx:"商场负一层，人流是真的大，扣点也是真的狠。\n你算清了每只包子的毛利，算漏了「毛利乘以销量还得先减去保底租金」。",le:"高流量渠道的实际成本是保底租金加扣点，而不只是提成比例。",tag:"cost"},
-    E_BACKSTREET:{n:"没人知道你在这儿",t:"bad",arc:"lantern",tx:"巷子最深处的铺面便宜到让你觉得自己很聪明。\n一个月后你发现了原因。",le:"租金便宜的位置，差额会以「获客成本」的名义重新向你收费。"},
+    E_BACKSTREET:{n:"没人知道你在这儿",t:"bad",arc:"lantern",tx:"巷子最深处的铺面便宜到让你觉得自己很聪明。\n一个月后你发现了原因。",le:"租金便宜的位置，差额会以「获客成本」的名义重新向你收费。",tag:"cost"},
     E_DECOR:{n:"装修是最好的包子",t:"bad",arc:"mask",tx:"黄铜吊灯、实木台面、手写菜单。客人拍照很多，包子没人买。\n你花了三万块装修，却没钱多进两袋面粉。",le:"固定资产投入不产生现金流，只在产生客流时才值得。",tag:"cost"},
-    E_STEAMER:{n:"省了两百块",t:"bad",arc:"scythe",tx:"买了二手蒸箱，第三天漏汽，第七天罢工，第十一天你在维修师傅的报价单前站了很久。\n那两天你只能拒掉一半订单。",le:"影响交付能力的低价设备，节省的钱是假的，误工的损失是真的。"},
+    E_STEAMER:{n:"省了两百块",t:"bad",arc:"scythe",tx:"买了二手蒸箱，第三天漏汽，第七天罢工，第十一天你在维修师傅的报价单前站了很久。\n那两天你只能拒掉一半订单。",le:"影响交付能力的低价设备，节省的钱是假的，误工的损失是真的。",tag:"cost"},
     E_FLOUR:{n:"面粉涨价那天",t:"bad",arc:"coin",tx:"你没囤货，因为上个月刚涨过一轮。这次涨完，你的售价没动。\n每只包子从赚三毛变成亏两毛。",le:"原材料涨价时，不锁价也不传导，等于自己吞下全部成本差。",tag:"cost"},
     E_PRICEUP:{n:"涨价最快的老板",t:"bad",arc:"scale",tx:"成本涨两毛，你涨五毛，觉得稳。\n老客人再也不来了，新客人只在别家买。",le:"定价权来自不可替代，而不是成本加成。口碑一破，涨价带来的只有缩量。",tag:"people"},
     E_RELATIVE:{n:"给小舅子发工资",t:"bad",arc:"wand",tx:"他没来上班，但每月十五号照领。你妈说你不懂事。\n半年后你算了一次人工，才发现这条隐形成本比面粉还贵。",le:"关联方薪酬是最容易被漏记的固定成本。",tag:"cost"},
@@ -359,7 +370,7 @@ const DB = {
     E_AI:{n:"智慧包子",t:"bad",arc:"eye",tx:"花了十二万上「智慧餐饮系统」，能看数据，能人脸识别。\n数据告诉你生意在跌，人脸告诉你客人不再来。",le:"数字化工具的价值只有在你已有可复制的运营方法时才成立。",tag:"cost"},
     E_LIVESTREAM:{n:"直播间的神话",t:"bad",arc:"wheel",tx:"你连夜做速冻装上了直播，一场卖了两万单。\n冷链、坏损、售后、平台抽成结完算，亏了四万，还搭进去两个人没睡觉。",le:"边际履约成本高的订单，规模越大越亏。毛利要按到岸口径算。",tag:"cost"},
     E_RUSH:{n:"赶工期",t:"bad",arc:"scythe",tx:"新店你只给了一周装修，验收走过场。消防没过，重做。\n两周的工期变六周，房租照付，员工照发。",le:"返工是唯一一项成本会被计算两次的支出。",tag:"cash"},
-    E_PRICEWAR:{n:"两块九的战争",t:"bad",arc:"sword",tx:"你把价格砍到两块九，逼走了对手。\n他也回来了，带着比他更便宜的资本。你还在同一口蒸笼里。",le:"以亏损换出清，前提是你比对手更耐亏且资金更久。"},
+    E_PRICEWAR:{n:"两块九的战争",t:"bad",arc:"sword",tx:"你把价格砍到两块九，逼走了对手。\n他也回来了，带着比他更便宜的资本。你还在同一口蒸笼里。",le:"以亏损换出清，前提是你比对手更耐亏且资金更久。",tag:"cost"},
     E_FAMILY:{n:"家里那笔钱",t:"bad",arc:"cup",tx:"你把给母亲治病预留的十二万投进了新店，想着三个月就回来。\n三个月没回来，第五个月医院也来了电话。",le:"永远不要给不可中断的个人义务做经营性再投资。",tag:"people"},
     E_GREED2:{n:"什么都想做",t:"bad",arc:"coin",tx:"包子、馄饨、豆浆、炒菜、夜宵、伴手礼。菜单厚得像书。\n备料翻倍，损耗翻倍，客人还是只点包子。",le:"过宽的SKU会同时抬高库存、损耗和管理成本，却不抬高复购。",tag:"cost"},
     E_BURNOUT:{n:"凌晨四点的第两千天",t:"bad",arc:"hourglass",tx:"你没亏钱，也没生病，只是有天早上起来不想动了。\n你把铺子转让了，价格比你心里想的低很多。你不在乎。",le:"创始人可持续性是经营模型里的隐含约束，它一旦失效，其余变量不再有意义。",tag:"people"},
@@ -380,141 +391,141 @@ const DB = {
   },
   /* ---------- 场景 ---------- */
   scenes:[
-    /* 第一章 起步 */
-    {c:1,t:"盘下一间铺面",s:"城南老小区门口，五十平，做了八年早餐。房东 {landlord} 要押一付六，还要一千「喝茶费」。你手里有五万。",o:[
-      {l:"签。押一付六，先把地方占住",fx:{cash:-36000,rep:2,risk:.45},end:"E_RENT",le:"预付的六个月房租变成了无法退出的长期资产。",tag:"cash"},
+    /* 五幕：立店 → 生存 → 口碑 → 扩张 → 资本，顺序由你手上的牌决定 */
+    {st:1,ord:1,core:1,c:1,t:"盘下一间铺面",s:"城南老小区门口，五十平，做了八年早餐。房东 {landlord} 要押一付六，还要一千「喝茶费」。你手里有五万。",o:[
+      {l:"签。押一付六，先把地方占住",killIf:{cash:12000},fx:{cash:-36000,rep:2,risk:.45},end:"E_RENT",le:"预付的六个月房租变成了无法退出的长期资产。",tag:"cash"},
       {l:"谈到押一付三，写进合同",fx:{cash:-19000,rep:4,inv:1},le:"账期就是现金流。少付三个月，等于凭空多了三个月的试错期。"},
-      {l:"转身去找更便宜的巷尾铺面",fx:{cash:-8000,rep:-6,risk:.6},end:"E_BACKSTREET",le:"便宜的位置会用客流把差额补回来。"},
+      {l:"转身去找更便宜的巷尾铺面",killIf:{cash:6000},fx:{cash:-8000,rep:-6,risk:.6},end:"E_BACKSTREET",le:"便宜的位置会用客流把差额补回来。"},
       {l:"给中介塞个红包，让他去跟房东谈",fx:{cash:-3000,rep:1,inv:1},le:"把谈判外包给利益相关方，通常比自己谈更贵也更慢。"},
-      {l:"改盘商场负一层，人流大",fx:{cash:-30000,rep:8,risk:.55},end:"E_CENTER",le:"保底租金加扣点，才是好地段的真实单价。",tag:"cost"}]},
-    {c:1,t:"第一批家伙什",s:"蒸箱、和面机、冰柜、案板。全新的要四万八，二手的两万，还有一家回收商说「两万八，包安装，保修半年」。",o:[
-      {l:"全套二手，能蒸就行",fx:{cash:-20000,risk:.55},end:"E_STEAMER",le:"影响交付能力的低价设备，省的钱是假的。"},
+      {l:"改盘商场负一层，人流大",killIf:{cash:15000},fx:{cash:-30000,rep:8,risk:.55},end:"E_CENTER",le:"保底租金加扣点，才是好地段的真实单价。",tag:"cost"}]},
+    {st:1,ord:2,core:1,c:1,t:"第一批家伙什",s:"蒸箱、和面机、冰柜、案板。全新的要四万八，二手的两万，还有一家回收商说「两万八，包安装，保修半年」。",o:[
+      {l:"全套二手，能蒸就行",killIf:{cash:8000},fx:{cash:-20000,risk:.55},end:"E_STEAMER",le:"影响交付能力的低价设备，省的钱是假的。"},
       {l:"两万八那家，要书面保修",fx:{cash:-28000,rep:3,inv:2},le:"设备的关键不是新旧，而是故障时有无兜底条款。",tag:"risk"},
       {l:"全新四万八，咬牙",fx:{cash:-48000,inv:3},le:"固定资产的回报要靠客流兑现，你还没验证客流就先把现金换成铁了。",tag:"cash"},
-      {l:"跟二手商口头约定租一台，用坏再换",fx:{cash:-9000,rep:-2,inv:1,risk:.5},end:"E_LEASE",le:"口头约定没有代价，反悔才有。",tag:"risk"}]},
-    {c:1,t:"招牌和灯",s:"你要不要花三万块把门头做成这条街最好看的那个？隔壁 {rival} 的粥铺招牌掉了漆。",o:[
-      {l:"三万。要做就做最好的",fx:{cash:-30000,rep:6,risk:.55},end:"E_DECOR",le:"黄铜吊灯不产生现金流。"},
+      {l:"跟二手商口头约定租一台，用坏再换",killIf:{cash:5000},fx:{cash:-9000,rep:-2,inv:1,risk:.5},end:"E_LEASE",le:"口头约定没有代价，反悔才有。",tag:"risk"}]},
+    {st:1,ord:3,c:1,t:"招牌和灯",s:"你要不要花三万块把门头做成这条街最好看的那个？隔壁 {rival} 的粥铺招牌掉了漆。",o:[
+      {l:"三万。要做就做最好的",killIf:{cash:10000},fx:{cash:-30000,rep:6,risk:.55},end:"E_DECOR",le:"黄铜吊灯不产生现金流。"},
       {l:"三千块，灯箱加喷绘",fx:{cash:-3000,rep:4},le:"识别度靠位置、亮度和重复曝光，不靠造价。"},
       {l:"先不装，省下来买面粉",fx:{cash:0,rep:-4},le:"零曝光的代价是获客成本转由口碑承担，而你还没有口碑。",tag:"people"},
-      {l:"自己焊一个架子的",fx:{cash:-800},end:"E_SIGN",le:"省下的八百块，是把或有负债留在自己账上。",tag:"risk"}]},
-    {c:1,t:"人手",s:"你一个人从凌晨三点揉面到上午十点。有人推荐一个干了二十年的大师傅，月薪一万二，还要分红。",o:[
-      {l:"请。手艺就是护城河",fx:{cash:-24000,rep:8,risk:.5},end:"E_HIRE",le:"把核心能力押在一段随时可终止的关系上。",tag:"risk"},
+      {l:"自己焊一个架子的",fx:{cash:-800,risk:.4},killIf:{cash:5000},bad:{rep:-5,mark:"E_SIGN",tx:"架子塌下来那天，客人只会记得这家店连招牌都挂不住。"},end:"E_SIGN",le:"省下的八百块，是把或有负债留在自己账上。",tag:"risk"}]},
+    {st:1,ord:4,core:1,c:1,t:"人手",s:"你一个人从凌晨三点揉面到上午十点。有人推荐一个干了二十年的大师傅，月薪一万二，还要分红。",o:[
+      {l:"请。手艺就是护城河",killIf:{cash:12000},fx:{cash:-24000,rep:8,risk:.5},end:"E_HIRE",le:"把核心能力押在一段随时可终止的关系上。",tag:"risk"},
       {l:"请个帮工，自己练褶子",fx:{cash:-6000,rep:3,inv:1},le:"先把可复制的技能留在自己身上，再考虑买别人的手艺。"},
-      {l:"让小舅子来，管吃管住给两千",fx:{cash:-2000,rep:-3,risk:.5},end:"E_RELATIVE",le:"关联方薪酬是最容易被漏记的固定成本。",tag:"cost"},
-      {l:"加盟一个牌子，用它的配方和名义",fx:{cash:-26000,rep:4,risk:.5},end:"E_FRANCHISE",le:"你付的加盟费，是别人的利润。",tag:"risk"}]},
-    {c:1,t:"开业第一天",s:"你决定定价。肉包成本一块四，街上卖两块；素包成本六毛，卖一块。",o:[
+      {l:"让小舅子来，管吃管住给两千",killIf:{cash:0},fx:{cash:-2000,rep:-3,risk:.5},end:"E_RELATIVE",le:"关联方薪酬是最容易被漏记的固定成本。",tag:"cost"},
+      {l:"加盟一个牌子，用它的配方和名义",killIf:{cash:6000},fx:{cash:-26000,rep:4,risk:.5},end:"E_FRANCHISE",le:"你付的加盟费，是别人的利润。",tag:"risk"}]},
+    {st:1,ord:5,core:1,c:1,t:"开业第一天",s:"你决定定价。肉包成本一块四，街上卖两块；素包成本六毛，卖一块。",o:[
       {l:"肉包一块九，先把人拉进来",fx:{cash:2400,rep:6},le:"低于对手的定价换来客流，前提是毛利还能覆盖固定成本。你的每只只赚五毛。",tag:"cost"},
       {l:"两块，随大流，把钱留给馅料",fx:{cash:3200,rep:5,inv:1},le:"跟随定价加品质投入，是新品类最稳的组合。"},
       {l:"两块五，用最好的馅",fx:{cash:3600,rep:-2},le:"这条街没人认识你，高价需要溢价理由，而理由需要时间建立。",tag:"people"},
       {l:"素包免费送，肉包收费",fx:{cash:-600,rep:9},le:"引流品的成本要当作广告费核算，不能当损耗。"}]},
     /* 第二章 发展 */
-    {c:2,t:"面粉又涨了",s:"给你供货的 {supplier} 把价从一百一十涨到一百三十五一袋。你算了一下，每只包子从赚三毛变亏两毛。",o:[
-      {l:"涨价五毛，成本得转出去",fx:{cash:1200,rep:-14,risk:.6},end:"E_PRICEUP",le:"定价权来自不可替代，而不是成本加成。",tag:"people"},
-      {l:"价不动，每个包子的馅少放一点",fx:{cash:900,rep:-9,risk:.34},le:"隐性减量是最容易被察觉的涨价，被发现时口碑要一次性归零。",tag:"people"},
-      {l:"不涨就不动，先扛着，售价不变",fx:{cash:-5200,rep:4,risk:.55},end:"E_FLOUR",le:"既不锁价也不传导，等于自己吞下全部成本差。",tag:"cost"},
+    {st:2,ord:1,core:1,c:2,t:"面粉又涨了",s:"给你供货的 {supplier} 把价从一百一十涨到一百三十五一袋。你算了一下，每只包子从赚三毛变亏两毛。",o:[
+      {l:"涨价五毛，成本得转出去",killIf:{rep:28},fx:{cash:1200,rep:-14,risk:.6},end:"E_PRICEUP",le:"定价权来自不可替代，而不是成本加成。",tag:"people"},
+      {l:"价不动，每个包子的馅少放一点",bad:{rep:-6,mark:"E_PRICEUP",tx:"省下的三毛，最后用口碑赔了回去——减量被抓到那天，前面攒的信任一次性清零。"},fx:{cash:900,rep:-9,risk:.34},le:"隐性减量是最容易被察觉的涨价，被发现时口碑要一次性归零。",tag:"people"},
+      {l:"不涨就不动，先扛着，售价不变",killIf:{cash:6000},fx:{cash:-5200,rep:4,risk:.55},end:"E_FLOUR",le:"既不锁价也不传导，等于自己吞下全部成本差。",tag:"cost"},
       {l:"囤三个月的量，锁住成本",fx:{cash:-9000,rep:2},le:"囤货锁价把成本风险换成现金风险，还要搭上仓储和资金占用。",tag:"cash"}]},
-    {c:2,t:"外卖平台来敲门",s:"你现在的堂食毛利三十八，一天卖四百只。",p:"签约上架：抽成两成，还要参加满减活动，另有竞价排名位。",
+    {st:3,ord:3,c:2,t:"外卖平台来敲门",need:{cash:20000},s:"你现在的堂食毛利三十八，一天卖四百只。",p:"签约上架：抽成两成，还要参加满减活动，另有竞价排名位。",
       o:[
-      {l:"上，量才是一切",fx:{cash:6000,rep:4,risk:.55},end:"E_DELIVERY",le:"抽成加满减之后，很多订单是负毛利。",tag:"cost"},
-      {l:"买竞价排名位，投了两个月",fx:{cash:-9000,rep:4,risk:.45},end:"E_ADVERT",le:"没有复购支撑的营销费用是消耗品，不是资产。",tag:"cost"},
-      {l:"只做三公里自配送",fx:{cash:900,rep:5,risk:.22},le:"自建配送省下抽成，代价是运力风险和一块不小的固定资产。",tag:"risk"},
+      {l:"上，量才是一切",killIf:{cash:12000},fx:{cash:6000,rep:4,risk:.55},end:"E_DELIVERY",le:"抽成加满减之后，很多订单是负毛利。",tag:"cost"},
+      {l:"买竞价排名位，投了两个月",killIf:{cash:9000},fx:{cash:-9000,rep:4,risk:.45},end:"E_ADVERT",le:"没有复购支撑的营销费用是消耗品，不是资产。",tag:"cost"},
+      {l:"只做三公里自配送",bad:{rep:-6,mark:"E_DELIVERY",tx:"自建运力的第一单事故是你自己扛：省下的抽成，先赔了一次超时。"},fx:{cash:900,rep:5,risk:.22},le:"自建配送省下抽成，代价是运力风险和一块不小的固定资产。",tag:"risk"},
       {l:"不做，把堂食做好",fx:{cash:300,rep:6},le:"放弃渠道就是把增长交给复购，前提是复购真的存在。",tag:"people"}]},
-    {c:2,t:"探店视频爆了",s:"明天开始，客流可能翻三倍。",p:"一个四十万粉的账号拍了你的蒸笼，评论区两百人说要来。你只有一口蒸箱。",
+    {st:3,ord:4,c:2,t:"探店视频爆了",need:{rep:62},s:"明天开始，客流可能翻三倍。",p:"一个四十万粉的账号拍了你的蒸笼，评论区两百人说要来。你只有一口蒸箱。",
       o:[
-      {l:"连夜多雇两人、多进三倍面粉",fx:{cash:-11000,rep:7,risk:.55},end:"E_INFLUENCER",le:"流量是一次性收入，承接流量的是永久性成本。",tag:"cash"},
+      {l:"连夜多雇两人、多进三倍面粉",killIf:{cash:9000},fx:{cash:-11000,rep:7,risk:.55},end:"E_INFLUENCER",le:"流量是一次性收入，承接流量的是永久性成本。",tag:"cash"},
       {l:"限流：每天只做六百只，卖完收摊",fx:{cash:2200,rep:8},le:"供给受限时，用确定性换口碑比用加班换流水更划算。"},
-      {l:"加价三成，趁热度",fx:{cash:3800,rep:-11,risk:.28},le:"对短期流量的定价剥削会在热度退去后被算总账。",tag:"people"},
+      {l:"加价三成，趁热度",bad:{rep:-6,mark:"E_INFLUENCER",tx:"热度退得比涨得快，被宰过的客人会替你把这件事讲给别人。"},fx:{cash:3800,rep:-11,risk:.28},le:"对短期流量的定价剥削会在热度退去后被算总账。",tag:"people"},
       {l:"照常，什么都不做",fx:{cash:800,rep:-2},le:"不做任何承接安排的爆红，等于把送上门的资产退回给路人。"}]},
-    {c:2,t:"会员卡",s:"你正好想开第二家店，缺的就是这一笔。",p:"有人提议做储值卡：充三百送八十。三天收进来十八万预收款。",
+    {st:3,ord:5,c:2,t:"会员卡",need:{cash:40000},s:"你正好想开第二家店，缺的就是这一笔。",p:"有人提议做储值卡：充三百送八十。三天收进来十八万预收款。",
       o:[
-      {l:"拿十八万去开分店",fx:{cash:180000,rep:5,risk:.5},end:"E_CARD",le:"预收款在会计上是负债不是收入。",tag:"cash"},
+      {l:"拿十八万去开分店",killIf:{cash:20000},fx:{cash:180000,rep:5,risk:.5},end:"E_CARD",le:"预收款在会计上是负债不是收入。",tag:"cash"},
       {l:"十八万单独存着，只做兑付",fx:{cash:-4000,rep:9,inv:1},le:"把储值放在受限账户里，等于给自己装了一道强制刹车。",tag:"cash"},
-      {l:"跟着做满减：满二十减八",fx:{cash:-3400,rep:3,risk:.4},end:"E_DISCOUNT",le:"满减的每一分都从你自己的毛利里出。",tag:"cost"},
+      {l:"跟着做满减：满二十减八",killIf:{cash:8000},fx:{cash:-3400,rep:3,risk:.4},end:"E_DISCOUNT",le:"满减的每一分都从你自己的毛利里出。",tag:"cost"},
       {l:"充三百送八十改成送券",fx:{cash:6000,rep:4},le:"送券把折扣延迟到未来且有核销率，实际成本低于直接让利。",tag:"cost"}]},
-    {c:2,t:"卫生检查",s:"整改要花两千块和一天停业。",p:"通知第二天来查后厨。你现在的地漏有点返味，挡鼠板还没买。",
+    {st:2,ord:2,core:1,c:2,t:"卫生检查",s:"整改要花两千块和一天停业。",p:"通知第二天来查后厨。你现在的地漏有点返味，挡鼠板还没买。",
       o:[
       {l:"关门一天，全改",fx:{cash:-3200,rep:4,inv:1},le:"停业整顿是买断一次不可逆风险的定价，通常远便宜过后悔。",tag:"risk"},
-      {l:"边营业边改，晚上赶工",fx:{cash:-1200,risk:.4},end:"E_INSPECT",le:"风险敞口没关，只是把整改成本换成睡眠。",tag:"risk"},
-      {l:"检查员是老朋友，没事",fx:{cash:0,risk:.7},end:"E_HEALTH",le:"把监管的裁量当作可依赖的关系，是把经营权交给别人。",tag:"risk"},
-      {l:"买套一次性的摆拍厨具",fx:{cash:-600,rep:-5,risk:.5},end:"E_RATS",le:"针对检查的合规只降低被查概率，不降低出事概率。",tag:"risk"}]},
-    {c:2,t:"老朋友的单子",s:"{pioneer} 说「都是熟人，签什么合同」。",p:"写字楼那位老主顾要包下整层早餐，每月八千，先供货后结。",
+      {l:"边营业边改，晚上赶工",killIf:{cash:8000},fx:{cash:-1200,risk:.4},end:"E_INSPECT",le:"风险敞口没关，只是把整改成本换成睡眠。",tag:"risk"},
+      {l:"检查员是老朋友，没事",killIf:{cash:6000},fx:{cash:0,risk:.7},end:"E_HEALTH",le:"把监管的裁量当作可依赖的关系，是把经营权交给别人。",tag:"risk"},
+      {l:"买套一次性的摆拍厨具",killIf:{cash:6000},fx:{cash:-600,rep:-5,risk:.5},end:"E_RATS",le:"针对检查的合规只降低被查概率，不降低出事概率。",tag:"risk"}]},
+    {st:3,ord:2,c:2,t:"老朋友的单子",need:{rep:45},s:"{pioneer} 说「都是熟人，签什么合同」。",p:"写字楼那位老主顾要包下整层早餐，每月八千，先供货后结。",
       o:[
-      {l:"答应，熟人的钱最好赚",fx:{cash:8000,rep:2,risk:.6},end:"E_CREDIT",le:"没有第三方担保的赊销，风险全在你身上。",tag:"risk"},
+      {l:"答应，熟人的钱最好赚",killIf:{cash:10000},fx:{cash:8000,rep:2,risk:.6},end:"E_CREDIT",le:"没有第三方担保的赊销，风险全在你身上。",tag:"risk"},
       {l:"做，但改成月结、押金、白纸黑字",fx:{cash:6000,rep:4,inv:1},le:"把关系变成合同不是不信任，是让这段关系可持续。",tag:"risk"},
-      {l:"借十万给老周周转，让他先付货款",fx:{cash:-4200,rep:1,risk:.5},end:"E_LEND",le:"小企业的每一笔非经营性借出，都是从营运资金里抽血。",tag:"cash"},
+      {l:"借十万给老周周转，让他先付货款",killIf:{cash:16000},fx:{cash:-4200,rep:1,risk:.5},end:"E_LEND",le:"小企业的每一笔非经营性借出，都是从营运资金里抽血。",tag:"cash"},
       {l:"婉拒，专心做街坊",fx:{cash:800,rep:3},le:"放弃应收账款换确定性，是小店合理但不增长的选择。",tag:"people"}]},
-    {c:2,t:"月底对账",s:"你翻了三遍，想不通。",p:"账本上写着：这个月利润两万二。你的银行卡余额从五万八变成四万一。",
+    {st:2,ord:3,core:1,c:2,t:"月底对账",s:"你翻了三遍，想不通。",p:"账本上写着：这个月利润两万二。你的银行卡余额从五万八变成四万一。",
       o:[
-      {l:"钱肯定在，先不管",fx:{cash:-3000,risk:.6},end:"E_CASHFLOW",le:"利润是观点，现金是事实。",tag:"cash"},
+      {l:"钱肯定在，先不管",killIf:{cash:4000},fx:{cash:-3000,risk:.6},end:"E_CASHFLOW",le:"利润是观点，现金是事实。",tag:"cash"},
       {l:"一项项找：冰柜里的存货、房东的押金、老周的应收",fx:{cash:2000,rep:3,inv:1},le:"现金流的漏洞几乎总在存货、押金和应收这三处。",tag:"cash"},
-      {l:"把利润全换成存货，仓库里堆到顶",fx:{cash:-14000,rep:2,risk:.45},end:"E_PEST",le:"存货堆到顶的那天，风险从价格变成生物。",tag:"cash"},
-      {l:"帮工要求涨薪，你拒绝并让她多担两小时",fx:{cash:1800,rep:-12},end:"E_OVERTIME",le:"低工资常常只是把成本挪了个地方。",tag:"people"}]},
-    {c:2,t:"隔壁开了家新的",s:"你的客人早上少了一半。",p:"两块九的肉包，开业送鸡蛋。他背后是连锁品牌，一年亏得起两百万。",
+      {l:"把利润全换成存货，仓库里堆到顶",killIf:{cash:8000},fx:{cash:-14000,rep:2,risk:.45},end:"E_PEST",le:"存货堆到顶的那天，风险从价格变成生物。",tag:"cash"},
+      {l:"帮工要求涨薪，你拒绝并让她多担两小时",fx:{cash:1800,rep:-12,risk:.45},killIf:{rep:34},bad:{rep:-8,mark:"E_OVERTIME",tx:"她没当场走，只是那天起蒸笼少了一屉。"},end:"E_OVERTIME",le:"低工资常常只是把成本挪了个地方。",tag:"people"}]},
+    {st:3,ord:1,core:1,c:2,t:"隔壁开了家新的",s:"你的客人早上少了一半。",p:"两块九的肉包，开业送鸡蛋。他背后是连锁品牌，一年亏得起两百万。",
       o:[
-      {l:"跟着降到两块九",fx:{cash:-9000,risk:.6},end:"E_PRICEWAR",le:"价格战里最贵的是只有单一收入来源的那个人。",tag:"cost"},
+      {l:"跟着降到两块九",killIf:{cash:6000},fx:{cash:-9000,risk:.6},end:"E_PRICEWAR",le:"价格战里最贵的是只有单一收入来源的那个人。",tag:"cost"},
       {l:"价不动，加送现磨豆浆",fx:{cash:1200,rep:7,inv:1},le:"用低边际成本的附加品对冲价格差，比直接砍价保毛利。",tag:"cost"},
       {l:"把服务做成他做不到的：记住每个熟客",fx:{cash:400,rep:10},le:"不可规模化的体验是单体店对连锁唯一的护城河。",tag:"people"},
-      {l:"把配方交给代工厂做速冻，走量反击",fx:{cash:7000,rep:-4,risk:.5},end:"E_MASTER",le:"用核心技术换渠道销量，是一次资产折价出售。",tag:"risk"}]},
+      {l:"把配方交给代工厂做速冻，走量反击",killIf:{rep:30},fx:{cash:7000,rep:-4,risk:.5},end:"E_MASTER",le:"用核心技术换渠道销量，是一次资产折价出售。",tag:"risk"}]},
     /* 第三章 扩张 */
-    {c:3,t:"投资人上门",s:"你需要钱开三家店，也需要有人替你验证这条路。坐在对面给你报了个价的是 {investor}。",p:"两家机构愿投两百万换三成，一家要季度增长对赌，一家只要求一年后再谈。",
+    {st:5,ord:3,core:1,c:3,t:"投资人上门",need:{wealth:190000},s:"你需要钱开三家店，也需要有人替你验证这条路。坐在对面给你报了个价的是 {investor}。",p:"两家机构愿投两百万换三成，一家要季度增长对赌，一家只要求一年后再谈。",
       o:[
-      {l:"签对赌那份，钱多、条款松紧无所谓",fx:{cash:800000,rep:6,risk:.65},end:"E_INVEST",le:"增长对赌是把经营风险转成个人无限责任。",tag:"risk"},
-      {l:"签宽松那份，估值低一点",fx:{cash:260000,rep:4,inv:2,risk:.1},br:2,le:"融资条款的排序是：先活命权，再控制权，最后才是估值。",tag:"risk"},
+      {l:"签对赌那份，钱多、条款松紧无所谓",killIf:{rep:60},fx:{cash:800000,rep:6,risk:.65},end:"E_INVEST",le:"增长对赌是把经营风险转成个人无限责任。",tag:"risk"},
+      {l:"签宽松那份，估值低一点",bad:{rep:-6,mark:"E_INVEST",tx:"条款松不等于没条款，钱到账那天起，增长的钟就开始走。"},fx:{cash:260000,rep:4,inv:2,risk:.1},br:2,le:"融资条款的排序是：先活命权，再控制权，最后才是估值。",tag:"risk"},
       {l:"不融资，用会员费和供应商账期开一家",fx:{cash:-18000,rep:3,inv:1},br:1,le:"不稀释股权的增长必须接受更慢的速度和更高的现金约束。"},
-      {l:"找同行合伙，各出各的",fx:{cash:-60000,rep:1,risk:.5},end:"E_PARTNER",le:"合伙机制不清的成本会在关系破裂时一次性全额计提。",tag:"people"}]},
-    {c:3,t:"第二家店",s:"三家都在同一天的报价上。",p:"A：大学城，客量大但寒暑假各两个月；B：老城区，客量平但全年无休；C：就在你对面路口。",
+      {l:"找同行合伙，各出各的",killIf:{cash:30000},fx:{cash:-60000,rep:1,risk:.5},end:"E_PARTNER",le:"合伙机制不清的成本会在关系破裂时一次性全额计提。",tag:"people"}]},
+    {st:4,ord:1,core:1,c:3,t:"第二家店",need:{cash:70000},s:"三家都在同一天的报价上。",p:"A：大学城，客量大但寒暑假各两个月；B：老城区，客量平但全年无休；C：就在你对面路口。",
       o:[
-      {l:"C，就在对面，我熟",fx:{cash:-90000,rep:3,risk:.6},end:"E_BRANCH",le:"判断新店只看它是带来增量还是抢走存量。",tag:"cost"},
-      {l:"B，稳的，先不追高增长",fx:{cash:-80000,rep:5,inv:1},br:1,le:"在现金流没验证过第二家店的模型前，选波动最小的位置。"},
-      {l:"A，学生客单低但量大",fx:{cash:-100000,rep:4,risk:.3},br:1,le:"把两个月零收入的空档写进现金流表，再决定去不去。",tag:"cash"},
+      {l:"C，就在对面，我熟",killIf:{cash:12000},fx:{cash:-72000,rep:3,risk:.6},end:"E_BRANCH",le:"判断新店只看它是带来增量还是抢走存量。",tag:"cost"},
+      {l:"B，稳的，先不追高增长",fx:{cash:-56000,rep:5,inv:1},br:1,le:"在现金流没验证过第二家店的模型前，选波动最小的位置。"},
+      {l:"A，学生客单低但量大",bad:{rep:-6,mark:"E_BRANCH",tx:"两个月零收入，房租照付——空档期没写进现金流表。"},fx:{cash:-80000,rep:4,risk:.3},br:1,le:"把两个月零收入的空档写进现金流表，再决定去不去。",tag:"cash"},
       {l:"先不开了，把第一家做成样板",fx:{cash:10000,rep:4},le:"可复制性没建立之前，多开一家只是多一个不能关闭的错误。"}]},
-    {c:3,t:"要不要建中央厨房",s:"还有一条路是租给别人代工，每只包子付两毛。",p:"投资四十万，产能顶十家店。你现在三家，订单在涨。",
+    {st:4,ord:2,core:1,c:3,t:"要不要建中央厨房",need:{branch:1,cash:60000},s:"还有一条路是租给别人代工，每只包子付两毛。",p:"投资十八万，产能顶十家店。你现在两家，订单在涨。",
       o:[
-      {l:"建。规模才有未来",fx:{cash:-180000,rep:6},cap:1,le:"未使用的产能每天都在产生真实亏损。要看你几家店来吃它。",tag:"cost"},
-      {l:"先代工，把店开到五家再说",fx:{cash:-24000,rep:2,inv:1},le:"把固定成本留成可变成本，是增长期最贵也最值的耐心。",tag:"cost"},
-      {l:"跟另一家早餐店合建，五五分",fx:{cash:-60000,rep:3,risk:.5},end:"E_SUPPLY",le:"共享产能就是共享依赖，任何一方的事故都会传导到你。",tag:"risk"},
-      {l:"一周内把厨房赶出来，验收走过场",fx:{cash:-52000,rep:-2,inv:2,risk:.5},end:"E_RUSH",le:"返工是唯一一项会被计算两次的成本。",tag:"cash"}]},
-    {c:3,t:"商标这件小事",s:"你也可以自己找代理，八百块，两个月。",p:"你叫「老包记」。朋友说顺手帮忙注册，写在他名下，以后转给你就行。",
+      {l:"建。规模才有未来",fx:{cash:-180000,rep:6,risk:.3},cap:1,end:"E_FACTORY",killIf:{cash:40000},bad:{rep:-6,mark:"E_FACTORY",tx:"厨房建好了，订单没跟上：空转的产能每天照抄一遍账单。"},le:"未使用的产能每天都在产生真实亏损。要看你几家店来吃它。",tag:"cost"},
+      {l:"先代工，把店开到五家再说",fx:{cash:-20000,rep:2,inv:1},le:"把固定成本留成可变成本，是增长期最贵也最值的耐心。",tag:"cost"},
+      {l:"跟另一家早餐店合建，五五分",killIf:{cash:45000},fx:{cash:-60000,rep:3,risk:.5},end:"E_SUPPLY",le:"共享产能就是共享依赖，任何一方的事故都会传导到你。",tag:"risk"},
+      {l:"一周内把厨房赶出来，验收走过场",killIf:{cash:35000},fx:{cash:-52000,rep:-2,inv:2,risk:.5},end:"E_RUSH",le:"返工是唯一一项会被计算两次的成本。",tag:"cash"}]},
+    {st:4,ord:4,c:3,t:"商标这件小事",s:"你也可以自己找代理，八百块，两个月。",p:"你叫「老包记」。朋友说顺手帮忙注册，写在他名下，以后转给你就行。",
       o:[
-      {l:"让朋友办，省事",fx:{cash:0,risk:.6},end:"E_TRADEMARK",le:"登记主体就是资产归属本身。",tag:"risk"},
+      {l:"让朋友办，省事",killIf:{},fx:{cash:0,risk:.6},end:"E_TRADEMARK",le:"登记主体就是资产归属本身。",tag:"risk"},
       {l:"自己找代理，写公司名",fx:{cash:-1200,rep:2,inv:1},le:"把无形资产写进自己名下的成本极低，回报在你要扩张的那天显现。",tag:"risk"},
-      {l:"花十二万上「智慧餐饮系统」",fx:{cash:-120000,rep:4,risk:.5},end:"E_AI",le:"数字化只有在你的运营方法可复制时才有价值。",tag:"cost"},
-      {l:"不管，招牌有人认就行",fx:{cash:0,rep:1,risk:.4},le:"你做大之前的名字，属于最先注册的那个人。",tag:"risk"}]},
-    {c:3,t:"银行的额度",s:"你的账上现金只有六万。",p:"经营贷批了三十万，年化不低但够快。你正好想换辆车，也正好想开第三家店。",
+      {l:"花十二万上「智慧餐饮系统」",killIf:{cash:40000},fx:{cash:-120000,rep:4,risk:.5},end:"E_AI",le:"数字化只有在你的运营方法可复制时才有价值。",tag:"cost"},
+      {l:"不管，招牌有人认就行",bad:{rep:-6,mark:"E_TRADEMARK",tx:"你做大之前的名字，属于最先注册的那个人。"},fx:{cash:0,rep:1,risk:.4},le:"你做大之前的名字，属于最先注册的那个人。",tag:"risk"}]},
+    {st:5,ord:1,core:1,c:3,t:"银行的额度",need:{cash:40000},s:"你把第一家的账本翻了第三遍。",p:"经营贷批了三十万，年化不低但够快。你正好想换辆车，也正好想开第三家店。",
       o:[
-      {l:"提十万，换辆车，反正低成本",fx:{cash:-40000,rep:-4,risk:.6},end:"E_LOAN",le:"信贷额度是流动性储备，变成消费就同时失去了钱和缓冲。",tag:"cash"},
+      {l:"提十万，换辆车，反正低成本",killIf:{cash:18000},fx:{cash:-40000,rep:-4,risk:.6},end:"E_LOAN",le:"信贷额度是流动性储备，变成消费就同时失去了钱和缓冲。",tag:"cash"},
       {l:"额度留着不动，只用六万周转",fx:{cash:0,rep:3,inv:1},le:"未使用的授信是一种买好的保险，动用之前先问它是不是应急。",tag:"cash"},
-      {l:"全提，三家店一起开",fx:{cash:200000,rep:8,risk:.55},end:"BK3",le:"用短期资金做长期投入，期限错配会替你决定结局。",tag:"cash"},
-      {l:"提三十万，投给最赚钱的那家",fx:{cash:60000,rep:5,risk:.3},br:1,le:"把钱投给已验证的单位，比投给想象中的规模更接近回报。剩下的六万是缓冲。",tag:"cash"}]},
-    {c:3,t:"学校食堂的大单",s:"合同一年一签，续约「视考核情况」。",p:"中标供三所学校早餐，一单顶三个月。但要求你专辟场地、专雇八个人。",
+      {l:"全提，三家店一起开",killIf:{cash:60000},fx:{cash:200000,rep:8,risk:.55},end:"BK3",le:"用短期资金做长期投入，期限错配会替你决定结局。",tag:"cash"},
+      {l:"提三十万，投给最赚钱的那家",bad:{rep:-6,mark:"E_LOAN",tx:"钱投出去了，还款日不会跟着你的回报走。"},fx:{cash:60000,rep:5,risk:.3},br:1,le:"把钱投给已验证的单位，比投给想象中的规模更接近回报。剩下的六万是缓冲。",tag:"cash"}]},
+    {st:5,ord:2,c:3,t:"学校食堂的大单",need:{branch:1},s:"合同一年一签，续约「视考核情况」。",p:"中标供三所学校早餐，一单顶三个月。但要求你专辟场地、专雇八个人。",
       o:[
-      {l:"接，这是翻身仗",fx:{cash:120000,rep:7,risk:.6},end:"E_CONTRACT",le:"为单一客户定制的产能，不续约就是全额沉没成本。",tag:"risk"},
-      {l:"同时开直播卖速冻装，一场两万单",fx:{cash:56000,rep:5,risk:.5},end:"E_LIVESTREAM",le:"边际履约成本高的订单，规模越大越亏。",tag:"cost"},
-      {l:"要两年合同加提前解约赔偿",fx:{cash:60000,rep:2,risk:.4},end:"E_GENTRIFY",le:"合同期只保护你写在纸上的那一段。",tag:"risk"},
+      {l:"接，这是翻身仗",killIf:{cash:50000},fx:{cash:120000,rep:7,risk:.6},end:"E_CONTRACT",le:"为单一客户定制的产能，不续约就是全额沉没成本。",tag:"risk"},
+      {l:"同时开直播卖速冻装，一场两万单",killIf:{cash:40000},fx:{cash:56000,rep:5,risk:.5},end:"E_LIVESTREAM",le:"边际履约成本高的订单，规模越大越亏。",tag:"cost"},
+      {l:"要两年合同加提前解约赔偿",killIf:{cash:60000},fx:{cash:60000,rep:2,risk:.4},end:"E_GENTRIFY",le:"合同期只保护你写在纸上的那一段。",tag:"risk"},
       {l:"放弃，继续做街坊生意",fx:{cash:5000,rep:5},le:"放弃增长换取风险出清，不是保守，是把生存看得比规模重。",tag:"people"}]},
-    {c:3,t:"凌晨四点的自己",s:"店里的账上现金够撑四十天。",p:"你连续睡了两周不足五小时。帮工说：老板，要不歇一天。",
+    {st:3,ord:6,core:1,c:3,t:"凌晨四点的自己",s:"店里的账上现金够撑四十天。",p:"你连续睡了两周不足五小时。帮工说：老板，要不歇一天。",
       o:[
-      {l:"不歇。这行就是熬",fx:{cash:1500,rep:-6,risk:.45},end:"E_BURNOUT",le:"创始人的可持续性也是经营模型里的约束。",tag:"people"},
+      {l:"不歇。这行就是熬",killIf:{rep:35},fx:{cash:1500,rep:-6,risk:.45},end:"E_BURNOUT",le:"创始人的可持续性也是经营模型里的约束。",tag:"people"},
       {l:"每天只做一个半时段，中午收摊",fx:{cash:-3000,rep:7,inv:1},le:"用一点营收换稳定与口碑，通常换回更多。",tag:"people"},
-      {l:"两个帮工改发现金，不缴社保，每人加五百",fx:{cash:4000,rep:-3,risk:.5},end:"E_LABOR",le:"省下用工合规，就是把自己变成承保人。",tag:"risk"},
-      {l:"门口贴张纸：早起的老人才可以免费领",fx:{cash:-7000,rep:12,risk:.5},end:"E_WARM",le:"没有筛选机制的善意就是无上限负债。",tag:"cash"}]},
-    {c:3,t:"报表做好看一点",s:"会计说：调一下应收的账期，报表就顺眼了。",p:"下个月要续贷。这个月的流水难看，但明年三月就能起来。",
+      {l:"两个帮工改发现金，不缴社保，每人加五百",killIf:{cash:20000},fx:{cash:4000,rep:-3,risk:.5},end:"E_LABOR",le:"省下用工合规，就是把自己变成承保人。",tag:"risk"},
+      {l:"门口贴张纸：早起的老人才可以免费领",killIf:{cash:12000},fx:{cash:-7000,rep:12,risk:.5},end:"E_WARM",le:"没有筛选机制的善意就是无上限负债。",tag:"cash"}]},
+    {st:5,ord:4,c:3,t:"报表做好看一点",need:{branch:2},s:"会计说：调一下应收的账期，报表就顺眼了。",p:"下个月要续贷。这个月的流水难看，但明年三月就能起来。",
       o:[
-      {l:"调。一年之后就还上了",fx:{cash:30000,risk:.65},end:"E_MISREPORT",le:"报表造假同时抬高融资成本与存续风险。",tag:"risk"},
+      {l:"调。一年之后就还上了",killIf:{cash:50000},fx:{cash:30000,risk:.65},end:"E_MISREPORT",le:"报表造假同时抬高融资成本与存续风险。",tag:"risk"},
       {l:"不调，用真报表去谈展期",fx:{cash:-5000,rep:4},le:"把坏消息提前说出来，是保留谈判筹码唯一的方式。",tag:"cash"},
-      {l:"先把能收的应收收回来再报",fx:{cash:16000,rep:1,risk:.35},end:"E_CREDIT",le:"用催收代替粉饰，代价是关系；代价通常更小。",tag:"cash"},
+      {l:"先把能收的应收收回来再报",killIf:{cash:20000},fx:{cash:16000,rep:1,risk:.35},end:"E_CREDIT",le:"用催收代替粉饰，代价是关系；代价通常更小。",tag:"cash"},
       {l:"接受抽贷，主动缩到一家店",fx:{cash:-20000,rep:6},le:"在被迫之前主动缩小，是唯一还由你选的退出方式。",tag:"cash"}]},
-    {c:3,t:"什么都想做",s:"损耗率从百分之六涨到百分之十四。",p:"馄饨、豆浆、炒菜、夜宵、伴手礼。菜单厚得像本书。",
+    {st:4,ord:3,c:3,t:"什么都想做",need:{branch:1},s:"损耗率从百分之六涨到百分之十四。",p:"馄饨、豆浆、炒菜、夜宵、伴手礼。菜单厚得像本书。",
       o:[
-      {l:"全上。客人要什么给什么",fx:{cash:6000,rep:3,risk:.5},end:"E_GREED2",le:"过宽的SKU同时抬高库存、损耗和管理成本。",tag:"cost"},
-      {l:"全砍：最便宜的馅、最少的人、零推广",fx:{cash:9000,rep:-14,risk:.55},end:"E_SLOW",le:"全面压缩成本会把成本优势变成质量劣势。",tag:"cost"},
-      {l:"夜宵单独做，交给别人管",fx:{cash:-16000,rep:-2,risk:.4},end:"E_BRANCH2",le:"不能亲眼看的管理半径，就是你的管理边界。",tag:"people"},
-      {l:"涨价，把麻烦的客人筛掉",fx:{cash:3000,rep:-5,risk:.3},le:"筛选客户的前提是你有余量，否则只是流失。",tag:"people"}]},
-    {c:3,t:"家里那笔钱",s:"你把存折放在桌上，想了很久。",p:"母亲住院要用十二万。新店刚开业，正缺十二万，三个月就能回本。",
+      {l:"全上。客人要什么给什么",killIf:{cash:25000},fx:{cash:6000,rep:3,risk:.5},end:"E_GREED2",le:"过宽的SKU同时抬高库存、损耗和管理成本。",tag:"cost"},
+      {l:"全砍：最便宜的馅、最少的人、零推广",killIf:{rep:35},fx:{cash:9000,rep:-14,risk:.55},end:"E_SLOW",le:"全面压缩成本会把成本优势变成质量劣势。",tag:"cost"},
+      {l:"夜宵单独做，交给别人管",killIf:{cash:30000},fx:{cash:-16000,rep:-2,risk:.4},end:"E_BRANCH2",le:"不能亲眼看的管理半径，就是你的管理边界。",tag:"people"},
+      {l:"涨价，把麻烦的客人筛掉",bad:{rep:-6,mark:"E_SLOW",tx:"筛掉的客人不会回来，而你并没有腾出手接住新的。"},fx:{cash:3000,rep:-5,risk:.3},le:"筛选客户的前提是你有余量，否则只是流失。",tag:"people"}]},
+    {st:5,ord:5,c:3,t:"家里那笔钱",s:"你把存折放在桌上，想了很久。",p:"母亲住院要用十二万。新店刚开业，正缺十二万，三个月就能回本。",
       o:[
-      {l:"先投店，三个月就还回来",fx:{cash:120000,rep:-8,risk:.6},end:"E_FAMILY",le:"不要给不可中断的个人义务做经营性再投资。",tag:"people"},
+      {l:"先投店，三个月就还回来",killIf:{rep:30},fx:{cash:120000,rep:-8,risk:.6},end:"E_FAMILY",le:"不要给不可中断的个人义务做经营性再投资。",tag:"people"},
       {l:"钱先出，店先缓一缓",fx:{cash:-120000,rep:5},le:"有些支出的优先级不由回报率决定，而由不可逆性决定。",tag:"people"},
-      {l:"店转让一部分，两边都不耽误",fx:{cash:-20000,rep:3,risk:.4},end:"E_PARTNER",le:"折中的代价常常是把两个风险都接了。",tag:"risk"},
+      {l:"店转让一部分，两边都不耽误",killIf:{cash:25000},fx:{cash:-20000,rep:3,risk:.4},end:"E_PARTNER",le:"折中的代价常常是把两个风险都接了。",tag:"risk"},
       {l:"卖车、借亲戚，保住两边",fx:{cash:-40000,rep:2},le:"用流动性换义务，只要不押上营运资金就是可接受的。",tag:"cash"}]}
   ]
 };
@@ -705,6 +716,7 @@ function illCanvas(list,opt,W){return render(SW,SH,(opt&&opt.bg)||"k",illOps(lis
 /* 每个场景一幅像素插画：部件 = 精灵名，可选 [名, 缩放, 换色]，" " 表示留空 */
 const NIGHT={bg:"#05070d",stars:16,starsC:"w",seed:5,grnd:"#12161f"};
 const SCENE_ART={
+ "@gate":[[["sign",2],["bars",2],["boy",2]],{band:"#1a1408",bandH:.38,grnd:"#1d1d1d",grndH:.16}],
  "盘下一间铺面":[[["boy",2],["key",2],["shop",2]],{grnd:"#1d1d1d",grndH:.22}],
  "第一批家伙什":[[["bars",2],["steamer",2],["pot",2]],{band:"#101822",bandH:.4,grnd:"#1a1a1a",grndH:.16}],
  "招牌和灯":[[["sign",2],["shop",2],["lantern",2]],{grnd:"#1d1d1d",grndH:.18}],
@@ -935,7 +947,7 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
     loadHof(){try{const a=JSON.parse(localStorage.getItem(HKEY));return Array.isArray(a)?a:[]}catch(e){return[]}},
     saveHof(a){try{localStorage.setItem(HKEY,JSON.stringify(a.slice(0,100)))}catch(e){}},
     loadRun(){try{const r=JSON.parse(localStorage.getItem(RKEY));
-      return (r&&r.S&&r.cur&&r.S.day>0)?r:null}catch(e){return null}},
+      return (r&&r.v===2&&r.S&&r.cur&&r.S.day>0)?r:null}catch(e){return null}},
     saveRun(r){try{localStorage.setItem(RKEY,JSON.stringify(r))}catch(e){}},
     clearRun(){try{localStorage.removeItem(RKEY)}catch(e){}}
   };
@@ -1106,6 +1118,7 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
     const r=store.loadRun();
     if(!r)return home();
     S=r.S;cur=r.cur;
+    S.mk=S.mk||[];S.trace=S.trace||[];S.pass=S.pass||{};S.since=S.since||0;S.lasto=S.lasto||{};
     if(cur.k==="revive")revive(cur.title,cur.tag);
     else drawScene();
     return true;
@@ -1142,7 +1155,8 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
   function startNew(){
     show("play");
     S={day:0,cash:DB.start.cash,rep:DB.start.rep,inv:0,revives:0,used:[],lesson:null,tag:"cash",
-       branch:0,capacity:0,biz:{},first:{},npc:{},rounds:0};
+       branch:0,capacity:0,biz:{},first:{},npc:{},rounds:0,since:0,lasto:{},
+       mk:[],trace:[],pass:{}};
     cur=null;store.clearRun();
     next();
   }
@@ -1167,6 +1181,7 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
       b+='<span class="bchip'+(S.first[f.k]<=6?" early":"")+'">'+esc(f.n)+'<b>×'+n+'</b>'+
          '<i>'+(S.first[f.k]<=6?"先入局 +"+Math.round((fmMult(f.k)-1)*100)+"%":"第"+S.first[f.k]+"天进")+'</i></span>';
     });
+    if(S.mk.length)b+='<span class="bchip warn">隐患<b>×'+S.mk.length+'</b><i>每天在漏钱，红字那条会爆</i></span>';
     $("#h-biz").innerHTML=b;
   }
 
@@ -1178,13 +1193,102 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
     document.body.appendChild(a);setTimeout(()=>a.remove(),1150);
   }
 
+  /* ---------- 五幕经营路线：下一张牌由你手上有什么决定，不是抽卡 ---------- */
+  const ACTS=[null,
+    {n:"立店",d:"位置、设备、人手、招牌、定价，少一样都不算开了门"},
+    {n:"生存",d:"成本、合规、现金——这三道关任何一道都能单独要你"},
+    {n:"口碑",d:"街坊肯回头，才谈得上抢位置、抢渠道、抢人"},
+    {n:"扩张",d:"第二家店和中央厨房：管理半径就是你的边界"},
+    {n:"资本",d:"钱开始替你决定命运：融资、大单、报表、家里"}];
+  const NEEDF={
+    cash:["账上现金",()=>S.cash,w=>"≥ "+wan(w)+" 元"],
+    rep:["口碑",()=>S.rep,w=>"≥ "+w],
+    inv:["设备与手艺",()=>S.inv,w=>"≥ "+w+" 分"],
+    branch:["分店",()=>S.branch,w=>"≥ "+w+" 家"],
+    biz:["业态条数",()=>bizKinds(),w=>"≥ "+w+" 条线"],
+    wealth:["净资产",()=>wealth(),w=>"≥ "+wan(w)+" 元"],
+    cap:["中央厨房",()=>S.capacity?1:0,()=>"得先建起来"]};
+  function needOK(sc){
+    if(S.pass[sc.t])return {ok:true,miss:[]};
+    const nd=sc.need||{},miss=[];
+    Object.keys(nd).forEach(k=>{const f=NEEDF[k];
+      if(f&&f[1]()<nd[k])miss.push(f[0]+" "+f[2](nd[k]))});
+    return {ok:!miss.length,miss:miss};
+  }
+  /* 凑钱的缺口：现金/净资产类门槛，补的就是差额本身，不是又交一笔学费 */
+  function gateGap(sc){const nd=sc.need||{};
+    let g=0;
+    if(nd.cash&&S.cash<nd.cash)g+=nd.cash-S.cash;
+    if(nd.wealth&&wealth()<nd.wealth)g+=nd.wealth-wealth();
+    return Math.min(240000,Math.ceil(g/100)*100);}
+  function gateCost(sc){const nd=sc.need||{};
+    const want=Math.max(6000,Math.round(((nd.cash||24000)*0.35+(nd.rep?4000:0)+
+      (nd.branch?30000:0)+(nd.cap?40000:0))/100)*100);
+    /* 补关的钱不能当场把人补破产，否则「补」这条路是假的 */
+    return Math.max(4000,Math.min(want,Math.round(Math.max(S.cash*0.4,4000)/100)*100));}
+  function gateFix(sc){const nd=sc.need||{},a=[],g=gateGap(sc);
+    if(g>0)return "把钱凑到 "+wan((nd.cash||nd.wealth||0))+" 元（先垫 "+wan(g)+" 元，短期资金）";
+    if(nd.cash&&S.cash<nd.cash)a.push("把现金做到 "+wan(nd.cash)+" 元");
+    if(nd.rep&&S.rep<nd.rep)a.push("把口碑做到 "+nd.rep);
+    if(nd.branch&&S.branch<nd.branch)a.push("先开出 "+nd.branch+" 家分店");
+    if(nd.cap&&!S.capacity)a.push("先有中央厨房");
+    if(nd.biz&&bizKinds()<nd.biz)a.push("先跑出 "+nd.biz+" 条业态");
+    if(nd.inv&&S.inv<nd.inv)a.push("先把设备和手艺补到 "+nd.inv+" 分");
+    return (a[0]||"把上一关做扎实")+"，花 "+wan(gateCost(sc))+" 元走捷径";}
+  /* 门槛没到时的「关口卡」：补、硬闯、退回——三种都有代价，代价写在牌上 */
+  function gateCard(sc,miss){
+    const a=sc.st;
+    return {kind:"gate",st:a,c:a,illKey:"@gate",miss:miss,
+      t:"这一关你还没到",
+      s:"下一步本该是「"+sc.t+"」，可是"+miss.join("，")+"。"+ACTS[a].d+"。",
+      p:"顺序不是形式主义：这一关缺的东西，下一关会用贵得多的价钱卖回给你。",
+      o:[
+        (gateGap(sc)>0
+        ?{l:"补："+gateFix(sc),fx:{cash:gateGap(sc),rep:-2},fix:sc.t,tag:"cash",
+          mark:"borrow",always:1,amt:Math.max(12000,gateGap(sc)),
+          le:"垫来的钱能过关，但它带着到期日。过关不等于补齐。",
+          bad:{cash:-6000,rep:-5,mark:"borrow",tx:"拆东墙补西墙：墙是补上了，东墙开始漏风。"}}
+        :{l:"补："+gateFix(sc),fx:{cash:-gateCost(sc),rep:2,inv:1},fix:sc.t,tag:"cash",
+          le:"补前置的钱看着像白花，它买的是「下一关你接得住」。",
+          bad:{cash:-4000,rep:-6,tx:"为了补这一关你把现金抽干了——现金先出事，后面每件事都跟着出事。"}}),
+        {l:"硬闯：先干起来，缺的边走边补",fx:{cash:-Math.round(gateCost(sc)*0.4),rep:-4,risk:.55},
+         fix:sc.t,tag:"risk",mark:"gap",always:1,amt:gateCost(sc),
+         le:"跳关省下的时间，会用现金流和口碑一起还回去。",
+         bad:{rep:-8,mark:"gap",tx:"硬闯的代价不是当场倒下，是账上再没有一笔能救急的钱。"}},
+        {l:"退回上一关：这一关先不做，把能做的做扎实",fx:{cash:2000,rep:-2},skip:sc.t,tag:"people",
+         le:"慢就是快；但放弃的关口不会消失，它会在下一幕的报价单上等你。"}]};
+  }
+  /* 按幕推进：本幕核心关没过，就不给你下一幕的牌；牌序只往前走，不回头 */
+  function actList(a){return DB.scenes.filter(x=>x.st===a).sort((p,q)=>p.ord-q.ord)}
+  function unplayed(a){return actList(a).filter(x=>S.used.indexOf(x.t)<0)}
+  function over(a,o){return (S.lasto[a]||0)>=o}          /* 这一幕的进度条已经走过这里 */
+  function take(sc){S.used.push(sc.t);S.lasto[sc.st]=sc.ord;return sc}
   function scene(){
-    const chap=S.day<=4?1:S.day<=8?2:3;
-    const pool=DB.scenes.filter(s=>s.c===chap&&S.used.indexOf(s.t)<0);
-    const sc=pool.length?pick(pool):pick(DB.scenes.filter(s=>s.c===chap));
-    if(!sc)return null;
-    S.used.push(sc.t);
-    return sc;
+    for(let a=1;a<=5;a++){
+      const list=unplayed(a);
+      if(!list.length)continue;
+      if(list.some(x=>x.core)){
+        for(let j=0;j<list.length;j++){
+          const sc=list[j];
+          if(over(a,sc.ord)){S.used.push(sc.t);continue}  /* 已经走过去了，不回头补牌 */
+          const nd=needOK(sc);
+          if(nd.ok)return take(sc);            /* 顺路且够格的可选牌先打 */
+          if(sc.core)return gateCard(sc,nd.miss); /* 核心关不够格：关口卡，不跳过 */
+        }
+      }
+      /* 本幕核心全过了：剩下的可选牌最后看一眼，够格的打完，不够格的这一幕翻篇 */
+      for(let j=0;j<list.length;j++){const sc=list[j];
+        if(!over(a,sc.ord)&&needOK(sc).ok)return take(sc);}
+      list.forEach(sc=>S.used.push(sc.t));
+    }
+    return null;
+  }
+  function actInfo(sc){
+    const a=sc.st||1;
+    const all=DB.scenes.filter(x=>x.st===a);
+    const core=all.filter(x=>x.core);
+    const done=core.filter(x=>S.used.indexOf(x.t)>=0).length;
+    return {a:a,n:ACTS[a].n,i:Math.min(done+1,core.length),done:done,all:core.length};
   }
 
   /* ---------- 业态与先入局 ---------- */
@@ -1200,11 +1304,18 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
   }
 
   /* ---------- 名册 NPC 局：先留名的人，会反过来影响这一局 ---------- */
+  /* 名册是空的（第一次玩、或者还没连上网）时，用街面上的老面孔顶一个身家进来：
+     先入局的故事跟有没有榜单无关，它讲的是这条街本来就有别人先到。 */
+  function npcTop(){
+    if(hof.length)return hof[0];
+    const nm=NPC.name("top");
+    return {nm:nm,pio:0,net:Math.round(wealth()*2.6+150000)};
+  }
   function npcScene(){
-    if(!hof.length||S.day<4||S.used.indexOf("@npc")>=0)return null;
+    if(S.day<4||S.used.indexOf("@npc")>=0)return null;
     if(bizKinds()<1&&S.branch<1)return null;
     S.used.push("@npc");
-    const top=hof[0],pl=hof.filter(x=>x.pio),pio=pl.length?pick(pl).nm:NPC.name("pioneer"),isPio=pl.length>0;
+    const top=npcTop(),pl=hof.filter(x=>x.pio),pio=pl.length?pick(pl).nm:NPC.name("pioneer"),isPio=pl.length>0;
     const gap=top.net/Math.max(1,wealth());
     const o=[];
     o.push({l:"按市价接手 {top} 手里那个转角铺位",fx:{cash:-42000,rep:5,inv:2},tag:"cash",
@@ -1230,50 +1341,145 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
       s:"你打听到这条街上最好的转角，合同上的名字是 {top}——他比你早到 {gapd} 天，现在身家 "+wan(top.net)+" 元。"+
         (gap>=3?"他要弄死你，不需要理由，只需要降两块钱。":"他还没把你放在眼里，这算是个窗口。"),
       p:isPio?"替你跑腿的是 {pioneer}，名册上排前十的老名字。这条街上还有人认他。":""
-              +"托人说情的那个人，名册上排在第 "+(hofRank(pio)+1)+" 位。",
+              +(hof.length?"托人说情的那个人，名册上排在第 "+(hofRank(pio)+1)+" 位。"
+                          :"替你搭话的是 "+pio+"，街面上的人都认，但名册上还没他的名字。"),
       o:o};
   }
 
   /* 每日流水：口碑带客流，设备提产能，分店扩规模，业态各赚各的钱 */
-  function dailyNet(){
+  /* 管理半径：超过你看得过来的家数，每多一家、多一条线，都要从毛利里扣回去 */
+  function mgrEff(){
+    const over=Math.max(0,S.branch-2)+Math.max(0,bizUnits()-3);
+    const kitchen=(S.capacity&&S.branch<2)?1.5:0;
+    return Math.max(0.34,1-over*0.12-kitchen*0.12);
+  }
+  function dailyNetAt(k){
     if(S.day<=0)return 0;
     const repF=0.45+S.rep/100;                       // 0.45 ~ 1.45
     const invF=1+S.inv*0.12;
-    const sizeF=1+S.branch*0.85+(S.capacity?1.1:0);
-    let gross=2150*repF*invF*sizeF;
-    let fixed=560+S.branch*940+(S.capacity?1700:0);
+    const sizeF=1+S.branch*0.55+(S.capacity?0.7:0);
+    let gross=2620*repF*invF*sizeF;
+    let fixed=540+S.branch*1500+(S.capacity?2600:0);
     const syn=1+0.05*(bizKinds()-1);                 // 组合协同：一条线的闲时喂另一条线
     DB.formats.forEach(f=>{
       const n=S.biz[f.k]||0;if(!n)return;
       gross+=f.gross*n*repF*fmMult(f.k)*syn;
       fixed+=f.fixed*n;
     });
-    return Math.round(gross*(0.85+Math.random()*0.3)-fixed);
+    return Math.round(gross*mgrEff()*k-fixed);
   }
+  function dailyNet(){return dailyNetAt(0.85+Math.random()*0.3)}
+  function dailyNetAvg(){return dailyNetAt(1)}
   function wealth(){
     let v=S.cash+S.branch*90000+(S.capacity?130000:S.inv*6000);
     DB.formats.forEach(f=>{v+=(S.biz[f.k]||0)*f.val*fmMult(f.k)});
     return Math.round(v);
   }
 
-  function structural(){
-    if(S.capacity&&S.branch<2)return "E_FACTORY";
-    if(S.branch>=4)return "E_BRANCH2";
-    if(bizUnits()>=5)return "BZ_OVER";
-    if(S.biz.rest&&!S.capacity)return "BZ_REST";
-    if(S.biz.supply&&S.cash<30000)return "BZ_SUPPLY";
-    if(S.biz.franch&&S.rep<48)return "BZ_FRANCH";
+  /* ---------- 隐患：埋雷 → 预警 → 爆，三步。掷骰子只决定「有没有出事」，不决定你死于什么 ---------- */
+  /* 摊子每天的固定开支：店越多、厨房越大，断供的门槛就越高 */
+  function fixedDaily(){
+    return Math.round(540+S.branch*1500+(S.capacity?2600:0)+
+      DB.formats.reduce((t,f)=>t+(S.biz[f.k]||0)*f.fixed,0));
+  }
+  function leakTotal(){let t=0;const a=dailyNetAvg();
+    S.mk.forEach(m=>{if(m.warned)t+=markLeak(m,a)});return t}
+  /* 尺子只有一把：账上的现金能覆盖多少天固定开支。
+     生意在赚钱不等于扛得住——房租、工资、供货商不看你今天的流水，它们看你的余额。 */
+  function runway(){const f=fixedDaily();return f>0?Math.floor(Math.max(0,S.cash)/f):99;}
+  /* 「兜不住」的尺子：账上的钱还能撑几天。规模越大，同一个绝对数字越不安全。 */
+  const WEAK={
+    cash:()=>runway()<8,
+    cost:()=>dailyNetAvg()<0||runway()<6,
+    people:()=>S.rep<32,
+    risk:()=>runway()<5||S.rep<45};
+  const MARKS={
+    borrow:{n:"凑出来的本钱",tag:"cash",le:"这一关的钱是垫来的，它会在你最不方便的那天要你还。"},
+    gap:{n:"跳关硬上",tag:"cash",le:"有一关你是硬闯过来的，那笔没补上的账一直挂在现金上。"},
+    struct:{n:"结构撑不住了",tag:"cost",le:"摊子比管理大，出事只是时间问题。"}};
+  function markInfo(k){
+    if(MARKS[k])return MARKS[k];
+    const e=DB.endings[k]||{};
+    return {n:e.n||k,tag:e.tag||"cash",le:e.le||""};
+  }
+  function addMark(k,op){
+    if(!k)return;
+    for(let i=0;i<S.mk.length;i++)if(S.mk[i].k===k)return;
+    /* 埋雷那一刻的账面一起记下：预警条和死因链要说的是「当时你兜得住吗」 */
+    const sp=op&&op.fx&&op.fx.cash<0?-(op.fx.cash):0;
+    const m={k:k,day:S.day,from:String((op&&op.l)||"").slice(0,30),tag:markInfo(k).tag,
+      amt:(op&&op.amt)||Math.max(8000,sp||20000),
+      cash:S.cash,run:runway(),warned:0,age:0};
+    S.mk.push(m);return m;
+  }
+  function clearMark(k){S.mk=S.mk.filter(m=>m.k!==k)}
+  function weakNow(m){return !!(WEAK[m.tag]||WEAK.cash)()}
+  /* 只有「预警过、而且到这天还是虚」的雷才炸；补回来就自己消掉 */
+  function boomMark(){
+    for(let i=0;i<S.mk.length;i++){
+      const m=S.mk[i];
+      if(!m.warned)continue;
+      const owing=S.cash<(m.amt||20000);
+      /* 结构类隐患：你把结构改对了、不再虚了，它就自己撤——这是你修好的那一条 */
+      if(m.tag!=="cash"&&!owing&&!weakNow(m)){m.calm=(m.calm||0)+1;if(m.calm>=2){S.mk.splice(i,1);i--}continue}
+      /* 现金类隐患不会因为账面好看就消失：它要么被你按天还完，要么在你付不起的那天炸 */
+      m.age=owing?(m.age||0)+1:0;
+      if(m.age>=2)return m;
+    }
     return null;
+  }
+  function warnMark(){S.mk.forEach(m=>{m.warned=1})}
+  /* 一条被预警的隐患每天的漏损：现金保底 700，再加上当天净利的一到三成。
+     它不是随机惩罚——它就是你没拆掉的那件事，按天计价。 */
+  function markLeak(m,net){
+    const w={cash:1,cost:.9,people:.8,risk:1.1}[m.tag]||1;
+    const amt=m.amt||20000;
+    /* 每天漏：这笔钱的 5%，但不超过当天利润的三成五，也不低于 500 元。
+       它要疼，但不能疼到必然还不上——否则「补」这一格是个陷阱，不是选择。 */
+    return Math.round(Math.max(500,Math.min(amt*0.05,Math.max(800,Math.max(0,net)*0.35)))*w);}
+  /* 一条红字要说清：哪来的、每天还多少、还到哪儿了、今天炸不炸得起来 */
+  function warnLine(m,net){
+    const due=m.amt||20000,owing=S.cash<due,weak=weakNow(m);
+    let t='⚠ 隐患「'+esc(markInfo(m.k).n)+'」· 第 '+m.day+' 天埋的（'+esc(m.from||'经营结构')+'）'+
+      ' · 那笔 '+wan(due)+'，每天还 '+money(markLeak(m,net))+
+      '，累计已付 '+money(m.leak||0)+'（'+Math.min(99,Math.round((m.leak||0)/due*100))+'%）';
+    if(owing)t+='；<b>这笔到期要 '+wan(due)+'，账上只有 '+wan(S.cash)+'</b>，差 '+money(due-S.cash)+
+      '，固定开支每天还要 '+money(fixedDaily())+
+      '——'+(S.day-m.day<=0?'今天刚欠下，给你两天拆掉它':('已经拖了 '+(S.day-m.day)+' 天，再拖两天就炸'));
+    else t+='；'+(weak?'账面虚（现金只够付 '+runway()+' 天固定开支），但这一笔你现在付得起，暂时炸不了'
+                      :'现金够付 '+runway()+' 天固定开支，这一笔你现在也付得起');
+    if(!owing&&m.tag==="cash")t+='——它是借来的，按天在还，还差 '+wan(due-(m.leak||0))+'。';
+    return t;
+  }
+  function fixMark(m){
+    const inf=markInfo(m.k);
+    /* 拆雷最多动用手上一半现金：拆完就见底的那不叫拆雷，叫换一种死法 */
+    const cost=Math.max(2000,Math.min(30000,Math.round(S.cash*0.5/100)*100));
+    return {l:"先拆掉隐患："+inf.n+"（"+wan(cost)+" 元）",fx:{cash:-cost,rep:2},clear:m.k,tag:inf.tag,
+      le:"拆雷的钱永远比雷炸了的赔偿便宜——前提是你补完还剩现金。"};
+  }
+  /* 结构性风险不再当场要命，先挂成隐患，给你一天补的机会 */
+  function structMark(){
+    let k=null,due=0;
+    if(S.capacity&&S.branch<2){k="E_FACTORY";due=60000}
+    else if(S.branch>=4){k="E_BRANCH2";due=S.branch*30000}
+    else if(bizUnits()>=5){k="BZ_OVER";due=bizUnits()*20000}
+    else if(S.biz.rest&&!S.capacity){k="BZ_REST";due=50000}
+    else if(S.biz.supply&&S.cash<30000){k="BZ_SUPPLY";due=40000}
+    else if(S.biz.franch&&S.rep<48){k="BZ_FRANCH";due=50000}
+    if(k)addMark(k,{l:"经营结构",amt:due});
+    return k;
   }
 
   /* ---------- 投资局：随资本解锁的新一轮业态 ---------- */
   function canBuy(f){
     if(f.k!=="fund"&&(S.biz[f.k]||0)>0)return false;
-    if(S.cash<f.fee)return false;
+    if(S.cash<f.fee+12000)return false;
     const nd=f.need||{};
     if(nd.rep&&S.rep<nd.rep)return false;
     if(nd.branch&&S.branch<nd.branch)return false;
     if(nd.capacity&&!S.capacity)return false;
+    if(nd.inv&&S.inv<nd.inv)return false;
     return true;
   }
   function investScene(){
@@ -1305,18 +1511,46 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
       o:o};
   }
   function next(){
-    if(S.cash<-40000)return ending("BK1","等你看清欠款总额那天，已经没有谈的余地了。");
+    if(S.cash<-40000){
+      S.trace.push({d:S.day,t:"破产",l:"欠款滚过四万：供货商、房东、工资在同一天到期",
+        cash:S.cash,rep:S.rep,net:wealth()});
+      if(S.trace.length>24)S.trace.shift();
+      return ending("BK1","等你看清欠款总额那天，已经没有谈的余地了。",
+        {l:"欠款滚过四万：供货商、房东、工资在同一天到期",tag:"cash"});
+    }
     if(S.cash<0)return revive("你的现金账户已经见底。房东、供货商和员工的工资在同一天到期。",S.tag||"cash");
-    if(S.day>=DB.start.days)return ending(finale());
+    if(S.day>=DB.start.days)return ending(finale(),null,{finale:1});
+    /* 机会牌不占天数：日子只在真正做经营动作的那天往前走 */
+    let bonus=null;
+    if(S.day>=6&&S.rounds<3&&(S.since||0)>=3&&DB.formats.filter(canBuy).length>=2)bonus=investScene();
+    if(!bonus&&S.day>=5&&(S.since||0)>=2)bonus=npcScene();
+    if(bonus){S.since=0;cur={k:"scene",sc:bonus,net:null,free:1};saveRun();return drawScene()}
+    S.since=(S.since||0)+1;
     S.day++;
     const net=dailyNet();
     S.cash+=net;
     if(net>0)S.rep=Math.min(100,S.rep+1);
     else if(net<-2500&&S.day>2)S.rep=Math.max(0,S.rep-2);
-    const st=structural();
-    if(st)return ending(st);
-    const sc=(S.day===4||S.day===6||S.day===8||S.day===10)&&investScene()||npcScene()||scene();
-    if(!sc)return ending(finale());
+    const boom=boomMark();
+    if(boom){const inf=markInfo(boom.k);
+      /* 隐患炸了，结局名字必须对得上这条隐患本身：
+         凑来的短期资金炸掉是「借了不该借的钱」，不是随机抽一张破产牌 */
+      const eid=DB.endings[boom.k]?boom.k:(boom.k==="gap"?"BK1":"BK3");
+      return ending(eid,inf.le,boom);}
+    structMark();
+    warnMark();
+    /* 隐患按天计价：牌面上的红字条会写出它今天漏了多少 */
+    S.mk.forEach(m=>{if(m.warned){const l=markLeak(m,net);S.cash-=l;m.leak=(m.leak||0)+l;
+      /* 这笔账是按天还的：漏够本金，它就自己结了——它不是凭空消失，是你一天一天付掉的 */
+      m.paid=(m.paid||0)+l;if(m.paid>=(m.amt||20000))m.settled=1}});
+    S.mk=S.mk.filter(m=>{
+      if(!m.settled)return true;
+      S.lesson={tx:"第 "+m.day+" 天那笔 "+wan(m.amt||20000)+"（"+markInfo(m.k).n+"），你分 "+
+        Math.max(1,S.day-m.day)+" 天连本带利付掉了，一共 "+money(m.leak||0)+
+        "。它还咬着你这几天，现在已经不咬了。",bad:false};
+      return false;});
+    let sc=scene();
+    if(!sc)return ending(finale(),null,{finale:1});
     cur={k:"scene",sc:sc,net:net};
     saveRun();
     drawScene();
@@ -1326,16 +1560,28 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
     const sc=cur.sc,net=cur.net;
     show("play");
     hud();
-    const chapName={1:"起步",2:"发展",3:"扩张"}[sc.c];
-    let h='<div class="card"><span class="tag">'+chapName+' · 第 '+S.day+' 天</span>';
-    if(S.day>1)h+='<div class="ledger">'+(net>=0?"▲":"▼")+' 昨日'+(net>=0?"净利":"净亏")+' '+money(net)+' · 净资产 '+money(wealth())+'</div>';
+    const ai=actInfo(sc);
+    const opts=optList(sc);
+    cur.opts=opts;
+    const chance=!!cur.free;
+    let h='<div class="card"><span class="tag">'
+      +(chance?"机会牌 · 不额外占一天 · 第 "+S.day+" 天"
+        :sc.kind==="gate"?"第"+ai.a+'幕·'+ai.n+' · 关口 · 第 '+S.day+" 天"
+        :"第"+ai.a+'幕·'+ai.n+' '+ai.done+"/"+ai.all+" 关 · 第 "+S.day+" 天")+'</span>';
+    if(S.day>1&&net!==null)h+='<div class="ledger">'+(net>=0?"▲":"▼")+' 昨日'+(net>=0?"净利":"净亏")+' '+money(net)+
+      ' · 净资产 '+money(wealth())+' · 现金可覆盖 '+runway()+' 天固定开支'+
+      (leakTotal()?' · 隐患每天漏 '+money(leakTotal()):'')+
+      (mgrEff()<0.999?' · 管理半径拖累 '+Math.round((1-mgrEff())*100)+'%':'')+'</div>';
     h+=PIX.illHTML(sc);
     h+='<h1 class="title">'+esc(fill(sc.t))+'</h1><p class="story">'+esc(fill(sc.s))+'</p>';
     if(sc.p)h+='<p class="story" style="color:#b8a99a;font-size:13.5px">'+esc(fill(sc.p))+'</p>';
-    sc.o.forEach((op,i)=>{
-      h+='<button class="opt" data-i="'+i+'"><b>'+("甲乙丙丁戊己庚"[i]||i+1)+'</b>'+esc(fill(op.l))+
+    if(sc.kind==="gate")h+='<div class="gate">这一关缺：'+esc((sc.miss||[]).join("、"))+'</div>';
+    const wl=S.mk.filter(m=>m.warned);
+    if(wl.length)h+='<div class="warnlist">'+wl.map(m=>warnLine(m,net)).join('<br>')+'</div>';
+    opts.forEach((op,i)=>{
+      h+='<button class="opt" data-i="'+i+'"><b>'+("甲乙丙丁戊己庚辛"[i]||i+1)+'</b>'+esc(fill(op.l))+
          (op.fx&&op.fx.biz&&Object.keys(op.fx.biz)[0]?'<small>'+esc(fmt(Object.keys(op.fx.biz)[0]).n)+'：'+
-          esc(fmt(Object.keys(op.fx.biz)[0]).d)+'</small>':'')+'</button>';
+          esc(fmt(Object.keys(op.fx.biz)[0]).d)+'</small>':'')+fxChips(op)+'</button>';
     });
     if(S.lesson){
       h+='<div class="lesson '+(S.lesson.bad?"warn":"")+'"><b>'+(S.lesson.bad?"教训":"知识点")+'</b>'+esc(S.lesson.tx)+'</div>';
@@ -1343,13 +1589,42 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
     h+='<button class="btn ghost" data-give="1">关掉蒸笼，收摊</button></div>';
     $("#stage").innerHTML=h;
     PIX.paintAll($("#stage"));
-    $("#stage").querySelectorAll(".opt").forEach(b=>b.onclick=()=>choose(sc,+b.dataset.i,b));
+    $("#stage").querySelectorAll(".opt").forEach(b=>b.onclick=()=>choose(sc,+b.dataset.i,b,opts[+b.dataset.i]));
     $("#stage").querySelector('[data-give]').onclick=function(){
       const b=this;
-      arm(b,"再点一次：确认收摊",()=>{lock(b);ending(giveUp())});
+      arm(b,"再点一次：确认收摊",()=>{lock(b);ending(giveUp(),null,{quit:1})});
     };
   }
 
+  /* 拆雷选项插在牌面上：预警过的雷，给你一次花钱解决的机会 */
+  function optList(sc){
+    const o=(sc.o||[]).slice(0);
+    if(sc.kind==="gate")return o;
+    /* 虚、或者这笔账当场付不起——两种都要给拆雷的口子，不能让人干等着炸 */
+    const hot=S.mk.filter(m=>m.warned&&(weakNow(m)||S.cash<(m.amt||20000)));
+    if(hot.length&&S.cash>0)o.unshift(fixMark(hot[0]));
+    return o;
+  }
+  function riskWord(r){return r>=.5?"高":r>=.3?"中":"低"}
+  function fxChips(op){
+    const f=op.fx||{},r=f.risk||op.risk||0,c=[];
+    if(f.cash)c.push((f.cash>0?"+":"−")+wan(Math.abs(f.cash))+" 元");
+    if(f.rep)c.push("口碑"+(f.rep>0?"+":"−")+Math.abs(f.rep));
+    if(f.inv)c.push("内功+"+f.inv);
+    if(op.br)c.push("分店+"+op.br);
+    if(op.cap)c.push("建中央厨房");
+    if(f.biz)c.push("开一条新线");
+    if(op.clear)c.push("拆掉这条隐患");
+    if(op.fix)c.push("过了这一关");
+    if(op.skip)c.push("放弃这一关");
+    /* 埋雷也要写在牌上：这一步会不会给后面留一条红字，点之前就该看见 */
+    if(op.mark)c.push(op.always?"会留下一条隐患":"失手会留下隐患");
+    const sp=(f.cash||0)<0?-(f.cash||0):0;
+    if(sp&&S.cash<sp)c.push("现金不足：这一步做完要去借钱");
+    if(r)c.push("失手 "+Math.round(r*100)+"%（"+riskWord(r)+"）");
+    if(op.end)c.push(r?(killOK(op)?"失手且兜不住：直接定生死":"失手也只是埋雷"):"这一步就定生死");
+    return c.length?"<span class='optfx'>"+c.map(x=>esc(x)).join(" · ")+"</span>":"";
+  }
   function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;")}
 
   /* 一次点击只算一次：连点会让同一个选项生效两遍 */
@@ -1374,38 +1649,71 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
     st.querySelectorAll("button").forEach(x=>{x.disabled=true;x.style.pointerEvents="none"});
   }
 
-  function choose(sc,i,btn){
-    lock(btn);
-    const op=sc.o[i];
-    const fx=op.fx||{};
+  function applyFx(fx,op){
+    fx=fx||{};
     S.cash+=(fx.cash||0);
-    S.rep=Math.max(0,Math.min(100,S.rep+(fx.rep||0)));
+    const g=fx.rep||0;
+    S.rep=Math.max(0,Math.min(100,S.rep+(g>0?Math.round(g*(S.rep>=90?.3:S.rep>=75?.6:1)):g)));
     S.inv+=(fx.inv||0);
-    if(op.br)S.branch+=op.br;
-    if(op.cap)S.capacity=1;
+    if(op){
+      if(op.br)S.branch+=op.br;
+      if(op.cap)S.capacity=1;
+    }
     if(fx.biz)Object.keys(fx.biz).forEach(k=>{
       S.biz[k]=(S.biz[k]||0)+fx.biz[k];
       if(S.first[k]==null)S.first[k]=S.day;
     });
+  }
+  /* 这一步要不要命，只看你兜不兜得住：默认花掉的钱之后连三成缓冲都不剩，才算致命 */
+  function killOK(op){
+    const k=op.killIf;
+    if(!k){
+      const sp=(op.fx&&op.fx.cash<0)?-op.fx.cash:0;
+      return sp>0&&S.cash<Math.round(sp*0.3);
+    }
+    let bad=false;
+    Object.keys(k).forEach(key=>{const f=NEEDF[key];
+      if(f&&f[1]()<k[key])bad=true});
+    return bad;
+  }
+  /* 失手但没到致命：扣血 + 埋雷，雷会在后面的牌上以红字预警出现 */
+  function suffer(op,bad){
+    bad=bad||{};
+    applyFx({cash:bad.cash||0,rep:bad.rep||0});
+    if(bad.mark)addMark(bad.mark,op);
+    S.lesson={tx:bad.tx||op.le||"",bad:true};
+    hud();
+    setTimeout(next,300);
+  }
+  function choose(sc,i,btn,opIn){
+    lock(btn);
+    S.lesson=null;
+    const op=opIn||sc.o[i];
+    const fx=op.fx||{};
+    applyFx(fx,op);
+    if(op.fix)S.pass[op.fix]=1;
+    if(op.mark&&op.always)addMark(op.mark,op);
+    if(op.skip&&S.used.indexOf(op.skip)<0)S.used.push(op.skip);
+    if(op.clear){
+      const inf=markInfo(op.clear);clearMark(op.clear);
+      S.lesson={tx:"你把「"+inf.n+"」这条隐患花钱拆掉了——它不会再在后面咬你。",bad:false};
+    }
     hud();
     float($("#h-cash"),(fx.cash>=0?"+":"")+wan(fx.cash||0),fx.cash>=0?"up":"down");
     if(fx.rep)float($("#h-rep"),(fx.rep>0?"+":"")+fx.rep,fx.rep>0?"up":"down");
     if(navigator.vibrate)try{navigator.vibrate(12)}catch(e){}
     S.tag=op.tag||"cash";
+    S.trace.push({d:S.day,t:sc.t,l:String(op.l).slice(0,30),cash:S.cash,rep:S.rep,net:wealth()});
+    if(S.trace.length>24)S.trace.shift();
     const risk=fx.risk||op.risk||0;
-    if(op.end&&!risk)return ending(op.end,op.le);
-    if(risk&&Math.random()<risk){
-      if(op.end)return ending(op.end,op.le);
-      const pool=Object.keys(DB.endings).filter(k=>/^E_/.test(k)&&DB.endings[k].tag===S.tag);
-      return ending(pool.length?pick(pool):randomBad(),op.le);
+    const hit=!!risk&&Math.random()<risk;
+    if(op.end&&(hit||!risk)){
+      if(killOK(op))return ending(op.end,op.le,op);
+      return suffer(op,op.bad||{mark:op.end,tx:op.le});
     }
-    S.lesson={tx:op.le||"",bad:false};
+    if(hit)return suffer(op,op.bad||{rep:-5,tx:op.le});
+    if(!S.lesson)S.lesson={tx:op.le||"",bad:false};
     setTimeout(next,240);
-  }
-
-  function randomBad(){
-    const pool=Object.keys(DB.endings).filter(k=>!/^FIN_/.test(k));
-    return pick(pool);
   }
 
   function revive(title,tag){
@@ -1430,13 +1738,18 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
     $("#stage").querySelectorAll(".opt").forEach(el=>el.onclick=()=>{
       lock(el);
       const b=set[+el.dataset.i];
-      if(b.tag===tag&&S.revives<1){
+      const note="书店里只有这三本，你翻了《"+b.n.replace(/[《》]/g,"")+"》";
+      S.trace.push({d:S.day,t:"破产救援",l:note,cash:S.cash,rep:S.rep,net:wealth()});
+      if(S.trace.length>24)S.trace.shift();
+      if(b.tag===tag&&S.revives<1&&S.cash>-40000){
         S.revives++;S.cash=Math.round(DB.start.cash*1.5);S.rep=Math.max(20,S.rep-6);
         S.lesson={tx:b.n.replace(/[《》]/g,"")+"： "+b.why,bad:true};
         return next();
       }
-      if(S.revives>=1)return ending("BK4",b.why);
-      ending("BK2",b.why);
+      const need={cash:"能救急的现金",cost:"算清的单位成本",people:"肯回头的老客人",risk:"兜底的合同"}[tag]||"能救急的现金";
+      const verdict="你翻的是"+b.n+"，它讲的是"+b.why+"可你现在缺的是"+need+"——书没错，病对不上。";
+      if(S.revives>=1)return ending("BK4",null,{l:note,tag:"cash",bad:{tx:verdict}});
+      ending("BK2",null,{l:note,tag:"cash",bad:{tx:verdict}});
     });
   }
 
@@ -1502,10 +1815,55 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
     flipT=setTimeout(doFlip,520);
   }
 
-  function ending(id,le,fromChoice){
+  const AVOID={cash:"留够三个月固定成本的现金再谈别的：现金断供时，任何一条好路都要现钱买。",
+    cost:"先把单位成本算到能报数：涨价、减量、囤货都是拿毛利换一个风险，换错方向就一起亏。",
+    people:"口碑和人都不是一天建成的：让街坊觉得被糊弄的那一次，要用几倍的价格补回来；而你一个人看得过来的店，也就那几家——人和口碑都得提前攒。",
+    risk:"能写进合同的别靠关系，能买断的风险别自己扛——你赔不起的那一份，就是全店的股权。"};
+  function causeHTML(id,le,src){
+    if(!S||!DB.endings[id])return "";
+    const e=DB.endings[id];
+    if(e.t==="good"||e.t==="top")return "";
+    /* 雷名和结局名不一定同名（borrow → BK3），所以两条路都找一遍 */
+    const mk=S.mk.filter(x=>x.k===id)[0]||(src&&src.k?S.mk.filter(x=>x.k===src.k)[0]:null);
+    const tr=S.trace&&S.trace.length?S.trace[S.trace.length-1]:null;
+    const row=(k,v)=>'<div class="crow"><i>'+k+'</i><span>'+v+'</span></div>';
+    /* 结算用的同一把尺子：不管你是被打趴还是自己走，账面就是结局的依据 */
+    const book=()=>"现金 "+wan(S.cash)+" 元 · 净资产 "+wan(wealth())+" 元 · 口碑 "+S.rep+
+      " · 分店 "+S.branch+" 家"+(S.capacity?" · 中央厨房":"")+" · 新线 "+bizKinds()+
+      " 条 · 内功 "+S.inv+" · 每天固定开支 "+money(fixedDaily())+"（现金可覆盖 "+runway()+" 天）";
+    let h="";
+    if(mk){
+      h+=row("埋雷","第 "+mk.day+" 天 · "+esc(mk.from||"经营结构")+
+        "（那笔 "+wan(mk.amt||20000)+"；当时账上 "+wan(mk.cash==null?S.cash:mk.cash)+
+        " 元，只够付 "+(mk.run==null?"?":mk.run)+" 天固定开支）");
+      h+=row("预警","第 "+(mk.day+1)+" 天起，这条红字挂在每一张牌上，牌面上也一直有「先拆掉隐患」这一格。");
+      h+=row("拖到炸","拖了 "+(S.day-mk.day)+" 天没拆。第 "+S.day+" 天这笔 "+wan(mk.amt||20000)+
+        " 要付，账上只有 "+wan(S.cash)+" 元，差 "+money(Math.max(0,(mk.amt||20000)-S.cash))+
+        "；固定开支每天还要 "+money(fixedDaily())+"，现金只够付 "+runway()+
+        " 天——你是真的兜不住它，不是它偏偏砸中你。"+
+        "中间每一次出牌，牌面上都有「先拆掉隐患」这一格。");
+    }else if(src&&src.quit){
+      h+=row("你自己关的门","第 "+S.day+" 天 · 你按了「关掉蒸笼，收摊」。没有雷炸你，也没有人逼你，"+
+        "是你自己算过之后决定不玩了。");
+      h+=row("收摊时账面",book());
+    }else if(src&&src.finale){
+      h+=row("牌打完了","第 "+S.day+" 天 · "+
+        (S.day>=DB.start.days?"二十四天过完，这一局到此结算":"摊子上已经没有下一关可走")+"，"+
+        "没有雷炸你，也没有哪一步失手——结局是你的账面自己走到的。");
+      h+=row("结算时账面",book());
+    }else if(tr){
+      h+=row("直接决定","第 "+tr.d+" 天 · "+esc(tr.l));
+      h+=row("按下时账面","现金 "+wan(tr.cash)+" 元 · 口碑 "+tr.rep+" · 净资产 "+wan(tr.net)+" 元");
+    }
+    if(src&&src.l&&!mk)h+=row("为什么是你兜不住",esc((src.bad&&src.bad.tx)||le||e.le||""));
+    h+=row("本可避免",esc(AVOID[e.tag||"cash"]));
+    return '<b>死因链</b>'+h;
+  }
+  function ending(id,le,src){
     if(!DB.endings[id])id="FIN_CLOSE";
     const e=DB.endings[id];
     cur=null;store.clearRun();
+    S.srcMark=src&&src.k?src.k:null;
     const isNew=!meta.got[id];
     meta.got[id]=1;meta.runs++;
     if(S.cash>meta.best)meta.best=S.cash;
@@ -1516,12 +1874,14 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
     mountCard();
     const done=S.day>=DB.start.days;
     $("#e-chap").textContent="第 "+S.day+" 天 · "
-      +(id==="FIN_QUIT"?"主动收摊":done?"十二天结束":id.indexOf("FIN_")===0?"提前收摊":"中途结局")
+      +(id==="FIN_QUIT"?"主动收摊":done?"二十四天结束":id.indexOf("FIN_")===0?"提前收摊":"中途结局")
       +" · 结局 #"+idx+(isNew?" · 新收录":"");
     $("#e-text").textContent=e.tx;
     const lessonText=le===null?"":(le||e.le||"");
     $("#e-lesson").style.display=lessonText?"":"none";
     $("#e-le").textContent=lessonText;
+    const cb=$("#e-cause"),ch=causeHTML(id,le,src);
+    cb.style.display=ch?"":"none";cb.innerHTML=ch;
     $("#e-cash").textContent=wan(S.cash);
     $("#e-net").textContent=wan(wealth());
     $("#e-rep").textContent=S.rep+" / 100";
@@ -1621,7 +1981,7 @@ return{pal:pal,SP:SP,render:render,illOps:illOps,illCanvas:illCanvas,paintAll:pa
 
   $("#b-start").onclick=fresh;
   $("#b-resume").onclick=resume;
-  function saveRun(){if(S&&cur)store.saveRun({v:1,ts:Date.now(),S:S,cur:cur})}
+  function saveRun(){if(S&&cur)store.saveRun({v:2,ts:Date.now(),S:S,cur:cur})}
   window.addEventListener("pagehide",saveRun);
   document.addEventListener("visibilitychange",()=>{if(document.hidden)saveRun()});
   window.addEventListener("pageshow",e=>{if(e.persisted)logLoad("bfcache 恢复")});
